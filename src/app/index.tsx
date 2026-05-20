@@ -1,14 +1,19 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { AccessibilityToggle } from "@/components/AccessibilityToggle";
-import { AccessibleButton } from "@/components/AccessibleButton";
-import { AppHeader } from "@/components/AppHeader";
-import { ScreenContainer } from "@/components/ScreenContainer";
-import { radius, spacing } from "@/constants/layout";
-import { fontSizes, fontWeights, lineHeights } from "@/constants/typography";
-import { useAccessibility } from "@/context/AccessibilityContext";
+import { AccessibilityToggle } from '@/components/AccessibilityToggle';
+import { AccessibleButton } from '@/components/AccessibleButton';
+import { AppHeader } from '@/components/AppHeader';
+import { InfoCard } from '@/components/InfoCard';
+import { ModuleCard } from '@/components/ModuleCard';
+import { ScreenContainer } from '@/components/ScreenContainer';
+import { radius, spacing } from '@/constants/layout';
+import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
+import { useAccessibility } from '@/context/AccessibilityContext';
+import { appModules } from '@/data/appModules';
 
-export default function Index() {
+export default function HomeScreen() {
+  const router = useRouter();
   const {
     colors,
     fontMultiplier,
@@ -45,7 +50,7 @@ export default function Index() {
             },
           ]}
         >
-          Fase 1 · Base visual
+          Propuesta funcional base
         </Text>
         <Text
           style={[
@@ -69,10 +74,44 @@ export default function Index() {
             },
           ]}
         >
-          Esta primera base define el sistema visual, componentes reutilizables
-          y preferencias globales de accesibilidad para construir las siguientes
-          pantallas.
+          AccesIA reúne lectura, voz, subtítulos, alto contraste, texto escalable
+          y modo simplificado en una experiencia móvil adaptable.
         </Text>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                color: colors.text,
+                fontSize: fontSizes.xl * fontMultiplier,
+                lineHeight: lineHeights.xl * fontMultiplier,
+              },
+            ]}
+          >
+            Menú principal
+          </Text>
+          <Text
+            style={[
+              styles.sectionDescription,
+              {
+                color: colors.textMuted,
+                fontSize: fontSizes.md * fontMultiplier,
+                lineHeight: lineHeights.md * fontMultiplier,
+              },
+            ]}
+          >
+            Selecciona un módulo para probar el flujo de la aplicación.
+          </Text>
+        </View>
+
+        <View style={styles.moduleList}>
+          {appModules.map((module) => (
+            <ModuleCard key={module.route} module={module} />
+          ))}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -86,7 +125,7 @@ export default function Index() {
             },
           ]}
         >
-          Controles rápidos
+          Accesibilidad rápida
         </Text>
 
         <View style={styles.buttonRow}>
@@ -105,9 +144,7 @@ export default function Index() {
             variant="secondary"
           />
         </View>
-      </View>
 
-      <View style={styles.section}>
         <AccessibilityToggle
           accessibilityHint="Cambia la interfaz a colores de alto contraste para mejorar la lectura."
           description="Mejora la legibilidad para personas con baja visión."
@@ -119,47 +156,21 @@ export default function Index() {
           accessibilityHint="Activa una experiencia con menos opciones visibles y textos más directos."
           description="Reduce la carga visual y cognitiva."
           label="Modo simplificado"
-          onValueChange={setSimplifiedMode}
+          onValueChange={(enabled) => {
+            setSimplifiedMode(enabled);
+            if (enabled) {
+              router.push('/modo-simplificado' as never);
+            }
+          }}
           value={settings.simplifiedMode}
         />
       </View>
 
-      <View
-        style={[
-          styles.infoCard,
-          {
-            backgroundColor: colors.primarySoft,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.infoTitle,
-            {
-              color: colors.text,
-              fontSize: fontSizes.lg * fontMultiplier,
-              lineHeight: lineHeights.lg * fontMultiplier,
-            },
-          ]}
-        >
-          Siguiente fase
-        </Text>
-        <Text
-          style={[
-            styles.infoText,
-            {
-              color: colors.textMuted,
-              fontSize: fontSizes.md * fontMultiplier,
-              lineHeight: lineHeights.md * fontMultiplier,
-            },
-          ]}
-        >
-          En la Fase 2 se configurará la navegación principal con las pantallas
-          de Inicio, Lectura, Asistente de voz, Subtítulos, Configuración y Modo
-          simplificado.
-        </Text>
-      </View>
+      <InfoCard
+        text="Esta fase agrega navegación entre pantallas, menú inferior, menú principal y funciones demostrativas para validar la experiencia antes de integrar servicios avanzados."
+        title="Fase 2 implementada"
+        tone="primary"
+      />
     </ScreenContainer>
   );
 }
@@ -178,7 +189,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.extraBold,
     letterSpacing: 0.8,
     marginBottom: spacing.sm,
-    textTransform: "uppercase",
+    textTransform: 'uppercase',
   },
   title: {
     fontWeight: fontWeights.extraBold,
@@ -191,25 +202,21 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.section,
   },
+  sectionHeader: {
+    gap: spacing.xs,
+  },
   sectionTitle: {
     fontWeight: fontWeights.extraBold,
   },
-  buttonRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  sectionDescription: {
+    fontWeight: fontWeights.regular,
+  },
+  moduleList: {
     gap: spacing.md,
   },
-  infoCard: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    marginTop: spacing.section,
-    padding: spacing.xl,
-  },
-  infoTitle: {
-    fontWeight: fontWeights.extraBold,
-    marginBottom: spacing.sm,
-  },
-  infoText: {
-    fontWeight: fontWeights.regular,
+  buttonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
   },
 });

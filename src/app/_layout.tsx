@@ -11,6 +11,7 @@ function AppStack() {
       <StatusBar style={settings.highContrast ? 'light' : 'dark'} backgroundColor={colors.background} />
       <Stack
         screenOptions={{
+          animation: 'slide_from_right',
           headerShown: false,
           contentStyle: {
             backgroundColor: colors.background,

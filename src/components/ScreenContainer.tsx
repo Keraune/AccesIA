@@ -1,25 +1,28 @@
-import { PropsWithChildren } from "react";
+import { PropsWithChildren } from 'react';
 import {
   ScrollView,
   StyleProp,
   StyleSheet,
   View,
   ViewStyle,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { appLayout, spacing } from "@/constants/layout";
-import { useAccessibility } from "@/context/AccessibilityContext";
+import { BottomNavigation } from '@/components/BottomNavigation';
+import { appLayout, spacing } from '@/constants/layout';
+import { useAccessibility } from '@/context/AccessibilityContext';
 
 type ScreenContainerProps = PropsWithChildren<{
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollEnabled?: boolean;
+  showBottomNavigation?: boolean;
 }>;
 
 export function ScreenContainer({
   children,
   contentContainerStyle,
   scrollEnabled = true,
+  showBottomNavigation = true,
 }: ScreenContainerProps) {
   const { colors } = useAccessibility();
 
@@ -35,6 +38,7 @@ export function ScreenContainer({
       >
         <View style={styles.inner}>{children}</View>
       </ScrollView>
+      {showBottomNavigation ? <BottomNavigation /> : null}
     </SafeAreaView>
   );
 }
@@ -46,11 +50,12 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: appLayout.horizontalPadding,
-    paddingVertical: spacing.xxl,
+    paddingBottom: spacing.section,
+    paddingTop: spacing.xxl,
   },
   inner: {
-    width: "100%",
+    width: '100%',
     maxWidth: appLayout.maxContentWidth,
-    alignSelf: "center",
+    alignSelf: 'center',
   },
 });
