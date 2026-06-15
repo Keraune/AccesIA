@@ -14,7 +14,7 @@ import { useAccessibility } from '@/context/AccessibilityContext';
 
 export default function SimplifiedModeScreen() {
   const router = useRouter();
-  const { colors, fontMultiplier, setSimplifiedMode } = useAccessibility();
+  const { colors, fontMultiplier, setSimplifiedMode, startLiveCaptions } = useAccessibility();
   const [showHelp, setShowHelp] = useState(false);
 
   return (
@@ -98,8 +98,8 @@ export default function SimplifiedModeScreen() {
           accessibilityHint="Abre subtítulos automáticos."
           description="Muestra texto grande para contenido con audio."
           icon="chatbubbles-outline"
-          onPress={() => router.push('/subtitulos' as never)}
-          title="Subtítulos"
+          onPress={() => startLiveCaptions('device')}
+          title="Subtitular ahora"
           variant="primary"
         />
         <AccessibleButton

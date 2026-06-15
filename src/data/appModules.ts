@@ -18,46 +18,46 @@ export type AppModule = {
   description: string;
   icon: AppIconName;
   accent: 'primary' | 'secondary' | 'accent' | 'success' | 'warning';
-  status: 'Disponible' | 'Personalizable' | 'Esencial';
+  status: 'Activo' | 'Personalizable' | 'Rápido';
   accessibilityHint: string;
 };
 
 export const appModules: AppModule[] = [
   {
     route: '/lectura',
-    label: 'Lectura accesible',
+    label: 'Lectura inteligente',
     shortLabel: 'Lectura',
-    description: 'Escucha textos, regula la velocidad de lectura y adapta el tamaño de letra.',
+    description: 'Pega o revisa un texto, escúchalo en voz alta, controla velocidad, pausa y tamaño de letra.',
     icon: 'volume-high-outline',
     accent: 'primary',
-    status: 'Disponible',
-    accessibilityHint: 'Abre la lectura accesible para escuchar textos y ajustar la lectura.',
+    status: 'Activo',
+    accessibilityHint: 'Abre lectura inteligente para escuchar textos y ajustar la lectura.',
   },
   {
     route: '/asistente',
     label: 'Asistente por voz',
     shortLabel: 'Voz',
-    description: 'Dicta una indicación, confirma lo entendido y recibe una respuesta clara.',
+    description: 'Dicta una acción, confirma lo entendido y recibe una respuesta visible y hablada.',
     icon: 'mic-outline',
     accent: 'secondary',
-    status: 'Disponible',
+    status: 'Activo',
     accessibilityHint: 'Abre el asistente por voz para dictar comandos y recibir respuestas.',
   },
   {
     route: '/subtitulos',
-    label: 'Subtítulos y multimedia',
+    label: 'Subtítulos flotantes',
     shortLabel: 'Subtítulos',
-    description: 'Visualiza subtítulos, descripciones de contenido y controles de reproducción accesibles.',
-    icon: 'chatbubbles-outline',
+    description: 'Activa una ventana flotante que muestra subtítulos sobre videos, clases, música o audio cercano.',
+    icon: 'chatbox-ellipses-outline',
     accent: 'accent',
-    status: 'Disponible',
-    accessibilityHint: 'Abre el módulo multimedia con subtítulos y descripciones accesibles.',
+    status: 'Rápido',
+    accessibilityHint: 'Abre subtítulos flotantes para contenido con audio.',
   },
   {
     route: '/configuracion',
-    label: 'Ajustes de accesibilidad',
+    label: 'Ajustes accesibles',
     shortLabel: 'Ajustes',
-    description: 'Configura contraste, letra, lector de pantalla, velocidad de voz y accesos rápidos.',
+    description: 'Configura contraste, letra, lector de pantalla, velocidad de voz, perfiles y accesos rápidos.',
     icon: 'options-outline',
     accent: 'warning',
     status: 'Personalizable',
@@ -65,13 +65,13 @@ export const appModules: AppModule[] = [
   },
   {
     route: '/modo-simplificado',
-    label: 'Modo simplificado',
+    label: 'Modo simple',
     shortLabel: 'Simple',
-    description: 'Usa una pantalla con cuatro acciones grandes para reducir distracciones.',
+    description: 'Reduce distracciones y deja cuatro acciones grandes: escuchar, hablar, subtitular y pedir ayuda.',
     icon: 'sparkles-outline',
     accent: 'success',
-    status: 'Esencial',
-    accessibilityHint: 'Abre el modo simplificado con acciones grandes y directas.',
+    status: 'Rápido',
+    accessibilityHint: 'Abre el modo simple con acciones grandes y directas.',
   },
 ];
 
@@ -83,7 +83,7 @@ export const bottomMenuModules: AppModule[] = [
     description: 'Volver a la pantalla principal.',
     icon: 'home-outline',
     accent: 'primary',
-    status: 'Disponible',
+    status: 'Activo',
     accessibilityHint: 'Vuelve a la pantalla de inicio.',
   },
   appModules[0],

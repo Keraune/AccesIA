@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibleButton } from '@/components/AccessibleButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -9,89 +9,102 @@ import { InfoCard } from '@/components/InfoCard';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
-import { useAccessibility } from '@/context/AccessibilityContext';
+import { LiveCaptionSource, useAccessibility } from '@/context/AccessibilityContext';
 
-const captions = [
-  'El profesor está explicando la actividad de hoy.',
-  'Recuerden revisar el contenido principal de la clase.',
-  'La accesibilidad permite comprender información sin depender solo del audio.',
-  'Los subtítulos ayudan a comprender contenido multimedia sin depender del audio.',
+const sourceOptions: Array<{
+  id: LiveCaptionSource;
+  title: string;
+  description: string;
+  icon: 'phone-portrait-outline' | 'play-circle-outline' | 'musical-notes-outline' | 'school-outline';
+}> = [
+  {
+    id: 'device',
+    title: 'Audio cercano',
+    description: 'Conversaciones, avisos o audio del entorno.',
+    icon: 'phone-portrait-outline',
+  },
+  {
+    id: 'video',
+    title: 'Video',
+    description: 'Clases, tutoriales o contenido multimedia.',
+    icon: 'play-circle-outline',
+  },
+  {
+    id: 'music',
+    title: 'Música',
+    description: 'Descripción textual de ritmo, voz y cambios de intensidad.',
+    icon: 'musical-notes-outline',
+  },
+  {
+    id: 'classroom',
+    title: 'Clase',
+    description: 'Indicaciones del docente y puntos importantes.',
+    icon: 'school-outline',
+  },
 ];
 
-const descriptions = [
-  'Se observa una clase virtual con una presentación en pantalla.',
-  'El expositor señala los puntos importantes del contenido.',
-  'La pantalla muestra controles visibles y subtítulos grandes.',
-];
+const previewLines: Record<LiveCaptionSource, string[]> = {
+  device: [
+    'Se detecta voz cercana. AccesIA muestra el mensaje principal en pantalla.',
+    'La persona indica que revises el contenido antes de continuar.',
+  ],
+  video: [
+    'El video explica una función de accesibilidad paso a paso.',
+    'En pantalla se observa un ejemplo con botones grandes.',
+  ],
+  music: [
+    'Música detectada: ritmo constante y volumen medio.',
+    'Aparece un fragmento vocal breve dentro de la pista.',
+  ],
+  classroom: [
+    'El docente está explicando los criterios de entrega.',
+    'Se solicita revisar la legibilidad y la navegación.',
+  ],
+};
 
 export default function CaptionsScreen() {
-  const { colors, fontMultiplier, settings, setSubtitlesEnabled } = useAccessibility();
-  const [captionIndex, setCaptionIndex] = useState(0);
-  const [descriptionIndex, setDescriptionIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const {
+    colors,
+    fontMultiplier,
+    liveCaptionSource,
+    liveCaptionsActive,
+    settings,
+    setLiveCaptionSource,
+    startLiveCaptions,
+    stopLiveCaptions,
+  } = useAccessibility();
+  const [previewIndex, setPreviewIndex] = useState(0);
 
-  useEffect(() => {
-    if (!settings.subtitlesEnabled || !isPlaying) {
-      return undefined;
-    }
-
-    const interval = setInterval(() => {
-      setCaptionIndex((current) => (current + 1) % captions.length);
-      setDescriptionIndex((current) => (current + 1) % descriptions.length);
-      setProgress((current) => (current >= 100 ? 0 : current + 12));
-    }, 2200);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, settings.subtitlesEnabled]);
-
-  function startCaptions() {
-    setSubtitlesEnabled(true);
-    setIsPlaying(true);
-  }
-
-  function pauseCaptions() {
-    setIsPlaying(false);
-  }
-
-  function stopCaptions() {
-    setIsPlaying(false);
-    setSubtitlesEnabled(false);
-    setProgress(0);
-    setCaptionIndex(0);
-    setDescriptionIndex(0);
-  }
-
-  const captionText = settings.subtitlesEnabled
-    ? captions[captionIndex]
-    : 'Subtítulos desactivados.';
-
-  const descriptionText = settings.subtitlesEnabled
-    ? descriptions[descriptionIndex]
-    : 'Activa subtítulos para ver descripciones accesibles del contenido multimedia.';
+  const previewText = useMemo(
+    () => previewLines[liveCaptionSource][previewIndex % previewLines[liveCaptionSource].length],
+    [liveCaptionSource, previewIndex],
+  );
 
   return (
     <ScreenContainer>
-      <AppHeader title="Subtítulos" subtitle="Contenido multimedia accesible" />
+      <AppHeader title="Subtítulos flotantes" subtitle="Texto sobre contenido con audio" />
 
       <View
         accessible
-        accessibilityLabel="Reproductor multimedia para subtítulos automáticos."
+        accessibilityLabel="Panel de subtítulos flotantes de AccesIA."
         style={[
-          styles.player,
+          styles.heroPanel,
           {
             backgroundColor: colors.primaryDeep,
-            borderColor: settings.highContrast ? colors.border : 'rgba(255,255,255,0.16)',
+            borderColor: settings.highContrast ? colors.border : 'rgba(255,255,255,0.14)',
             shadowColor: colors.shadow,
           },
         ]}
       >
-        <View style={styles.playerHeader}>
-          <View style={[styles.mediaTag, { backgroundColor: 'rgba(255,255,255,0.12)' }]}> 
-            <Ionicons color={colors.white} name="videocam-outline" size={16} />
+        <View style={styles.heroGlowOne} />
+        <View style={styles.heroGlowTwo} />
+
+        <View style={styles.heroHeader}>
+          <View style={[styles.modePill, { backgroundColor: 'rgba(255,255,255,0.12)' }]}> 
+            <View style={[styles.modeDot, { backgroundColor: liveCaptionsActive ? colors.accent : colors.secondary }]} />
             <Text
               style={[
-                styles.mediaTagText,
+                styles.modePillText,
                 {
                   color: colors.white,
                   fontSize: fontSizes.xs * fontMultiplier,
@@ -99,224 +112,356 @@ export default function CaptionsScreen() {
                 },
               ]}
             >
-              Clase virtual
+              {liveCaptionsActive ? 'Panel activo' : 'Listo para activar'}
             </Text>
           </View>
-          <IconBadge icon="chatbubbles-outline" inverted size="sm" tone="accent" />
+          <IconBadge icon="chatbox-ellipses-outline" inverted size="sm" tone="accent" />
         </View>
 
-        <View style={styles.playArea}>
-          <View style={[styles.playButton, { backgroundColor: 'rgba(255,255,255,0.14)' }]}> 
-            <Ionicons color={colors.white} name={isPlaying ? 'pause' : 'play'} size={30} />
-          </View>
-          <Text
-            style={[
-              styles.playerTitle,
-              {
-                color: colors.white,
-                fontSize: fontSizes.xxl * fontMultiplier,
-                lineHeight: lineHeights.xxl * fontMultiplier,
-              },
-            ]}
-          >
-            Contenido multimedia
-          </Text>
-          <Text
-            style={[
-              styles.playerCaption,
-              {
-                color: 'rgba(255,255,255,0.72)',
-                fontSize: fontSizes.sm * fontMultiplier,
-                lineHeight: lineHeights.sm * fontMultiplier,
-              },
-            ]}
-          >
-            Reproductor accesible con controles visibles, subtítulos y descripción.
-          </Text>
-        </View>
-
-        <View style={[styles.mediaProgressTrack, { backgroundColor: 'rgba(255,255,255,0.16)' }]}> 
-          <View style={[styles.mediaProgressFill, { width: `${progress}%`, backgroundColor: colors.accent }]} />
-        </View>
-      </View>
-
-      <View
-        accessible
-        accessibilityLabel={`Subtítulo actual: ${captionText}`}
-        style={[
-          styles.captionBox,
-          {
-            backgroundColor: colors.surface,
-            borderColor: settings.subtitlesEnabled ? colors.accent : colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <View style={styles.captionHeader}>
-          <IconBadge icon="text-outline" size="sm" tone="accent" />
-          <Text
-            style={[
-              styles.captionLabel,
-              {
-                color: colors.textMuted,
-                fontSize: fontSizes.sm * fontMultiplier,
-                lineHeight: lineHeights.sm * fontMultiplier,
-              },
-            ]}
-          >
-            Subtítulo en tiempo real
-          </Text>
-        </View>
         <Text
           style={[
-            styles.captionText,
+            styles.heroTitle,
+            {
+              color: colors.white,
+              fontSize: fontSizes.display * fontMultiplier,
+              lineHeight: lineHeights.display * fontMultiplier,
+            },
+          ]}
+        >
+          Activa subtítulos sobre la pantalla.
+        </Text>
+        <Text
+          style={[
+            styles.heroText,
+            {
+              color: 'rgba(255,255,255,0.78)',
+              fontSize: fontSizes.md * fontMultiplier,
+              lineHeight: lineHeights.md * fontMultiplier,
+            },
+          ]}
+        >
+          El botón flotante queda disponible en la app. Al activarlo, AccesIA muestra una ventana inferior con subtítulos, tipo de audio detectado y nivel de sonido.
+        </Text>
+
+        <AccessibleButton
+          accessibilityHint="Activa el panel flotante de subtítulos en la pantalla."
+          icon={liveCaptionsActive ? 'radio-outline' : 'chatbox-ellipses-outline'}
+          onPress={() => startLiveCaptions(liveCaptionSource)}
+          title={liveCaptionsActive ? 'Subtítulos activos' : 'Activar subtítulos flotantes'}
+          variant="accent"
+        />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text
+          style={[
+            styles.sectionKicker,
+            {
+              color: colors.accent,
+              fontSize: fontSizes.xs * fontMultiplier,
+              lineHeight: lineHeights.xs * fontMultiplier,
+            },
+          ]}
+        >
+          Fuente de audio
+        </Text>
+        <Text
+          style={[
+            styles.sectionTitle,
             {
               color: colors.text,
-              fontSize: fontSizes.xl * fontMultiplier,
+              fontSize: fontSizes.xxl * fontMultiplier,
               lineHeight: lineHeights.xxl * fontMultiplier,
             },
           ]}
         >
-          {captionText}
+          ¿Qué quieres subtitular?
         </Text>
       </View>
 
-      <InfoCard
-        icon="image-outline"
-        text={descriptionText}
-        title="Descripción del contenido"
-        tone="secondary"
-      />
+      <View style={styles.sourceGrid}>
+        {sourceOptions.map((option) => {
+          const selected = liveCaptionSource === option.id;
 
-      <InfoCard
-        icon={settings.subtitlesEnabled ? 'radio-outline' : 'notifications-off-outline'}
-        text={
-          settings.subtitlesEnabled
-            ? 'Sonido detectado: voz principal de la clase. Se muestran subtítulos y descripción textual.'
-            : 'No hay sonido importante detectado.'
-        }
-        title="Indicador visual"
-        tone={settings.subtitlesEnabled ? 'success' : 'default'}
-      />
-
-      <View style={styles.buttonRow}>
-        <AccessibleButton
-          accessibilityHint="Activa los subtítulos automáticos y reproduce el contenido multimedia."
-          fullWidth={false}
-          icon="play-outline"
-          onPress={startCaptions}
-          style={styles.halfButton}
-          title="Reproducir"
-          variant="primary"
-        />
-        <AccessibleButton
-          accessibilityHint="Pausa los subtítulos automáticos."
-          fullWidth={false}
-          icon="pause-outline"
-          onPress={pauseCaptions}
-          style={styles.halfButton}
-          title="Pausar"
-          variant="secondary"
-        />
+          return (
+            <Pressable
+              accessibilityHint={`Selecciona ${option.title} como fuente para subtítulos.`}
+              accessibilityLabel={`${option.title}. ${option.description}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={option.id}
+              onPress={() => setLiveCaptionSource(option.id)}
+              style={({ pressed }) => [
+                styles.sourceCard,
+                {
+                  backgroundColor: selected ? colors.primaryDeep : colors.surface,
+                  borderColor: selected ? colors.accent : colors.border,
+                  opacity: pressed ? 0.9 : 1,
+                  shadowColor: colors.shadow,
+                },
+              ]}
+            >
+              <View style={[styles.sourceIcon, { backgroundColor: selected ? 'rgba(255,255,255,0.14)' : colors.accentSoft }]}> 
+                <Ionicons color={selected ? colors.white : colors.accent} name={option.icon} size={22} />
+              </View>
+              <Text
+                style={[
+                  styles.sourceTitle,
+                  {
+                    color: selected ? colors.white : colors.text,
+                    fontSize: fontSizes.md * fontMultiplier,
+                    lineHeight: lineHeights.md * fontMultiplier,
+                  },
+                ]}
+              >
+                {option.title}
+              </Text>
+              <Text
+                style={[
+                  styles.sourceDescription,
+                  {
+                    color: selected ? 'rgba(255,255,255,0.72)' : colors.textMuted,
+                    fontSize: fontSizes.xs * fontMultiplier,
+                    lineHeight: lineHeights.xs * fontMultiplier,
+                  },
+                ]}
+              >
+                {option.description}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
-      <AccessibleButton
-        accessibilityHint="Detiene el contenido multimedia y desactiva subtítulos."
-        icon="stop-outline"
-        onPress={stopCaptions}
-        title="Detener y limpiar"
-        variant="ghost"
+
+      <View
+        style={[
+          styles.previewDevice,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        <View style={[styles.previewScreen, { backgroundColor: colors.primaryDeep }]}> 
+          <View style={styles.fakeVideoTopBar}>
+            <View style={[styles.fakeDot, { backgroundColor: colors.danger }]} />
+            <View style={[styles.fakeDot, { backgroundColor: colors.warning }]} />
+            <View style={[styles.fakeDot, { backgroundColor: colors.success }]} />
+          </View>
+
+          <View style={styles.fakeVideoContent}>
+            <Ionicons color={colors.white} name="play" size={38} />
+            <Text
+              style={[
+                styles.fakeVideoTitle,
+                {
+                  color: colors.white,
+                  fontSize: fontSizes.lg * fontMultiplier,
+                  lineHeight: lineHeights.lg * fontMultiplier,
+                },
+              ]}
+            >
+              Contenido con audio
+            </Text>
+          </View>
+
+          <View style={[styles.fakeCaption, { backgroundColor: 'rgba(0,0,0,0.72)' }]}> 
+            <Text
+              style={[
+                styles.fakeCaptionText,
+                {
+                  color: colors.white,
+                  fontSize: fontSizes.sm * fontMultiplier,
+                  lineHeight: lineHeights.sm * fontMultiplier,
+                },
+              ]}
+            >
+              {previewText}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.previewActions}>
+          <AccessibleButton
+            accessibilityHint="Muestra otra línea de subtítulo de ejemplo."
+            fullWidth={false}
+            icon="refresh-outline"
+            onPress={() => setPreviewIndex((current) => current + 1)}
+            style={styles.previewButton}
+            title="Cambiar línea"
+            variant="secondary"
+          />
+          <AccessibleButton
+            accessibilityHint="Detiene el panel flotante de subtítulos."
+            fullWidth={false}
+            icon="stop-outline"
+            onPress={stopLiveCaptions}
+            style={styles.previewButton}
+            title="Detener"
+            variant="ghost"
+          />
+        </View>
+      </View>
+
+      <InfoCard
+        icon="shield-checkmark-outline"
+        text="El acceso al micrófono o audio debe solicitar permiso del usuario. AccesIA muestra siempre un indicador visible cuando los subtítulos están activos."
+        title="Privacidad visible"
+        tone="primary"
       />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  player: {
-    minHeight: 300,
-    justifyContent: 'space-between',
+  heroPanel: {
+    gap: spacing.xl,
     borderWidth: 1,
     borderRadius: radius.xxl,
     padding: spacing.xxl,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.22,
-    shadowRadius: 34,
-    elevation: 8,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.28,
+    shadowRadius: 40,
+    elevation: 10,
   },
-  playerHeader: {
+  heroGlowOne: {
+    position: 'absolute',
+    top: -88,
+    right: -74,
+    width: 190,
+    height: 190,
+    borderRadius: 140,
+    backgroundColor: 'rgba(124, 58, 237, 0.32)',
+  },
+  heroGlowTwo: {
+    position: 'absolute',
+    bottom: -90,
+    left: -72,
+    width: 180,
+    height: 180,
+    borderRadius: 130,
+    backgroundColor: 'rgba(6, 182, 212, 0.24)',
+  },
+  heroHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  mediaTag: {
+  modePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  mediaTagText: {
-    fontWeight: fontWeights.extraBold,
-  },
-  playArea: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  playButton: {
-    width: 82,
-    height: 82,
-    alignItems: 'center',
-    justifyContent: 'center',
+  modeDot: {
+    width: 8,
+    height: 8,
     borderRadius: radius.pill,
   },
-  playerTitle: {
+  modePillText: {
+    fontWeight: fontWeights.extraBold,
+  },
+  heroTitle: {
     fontWeight: fontWeights.black,
-    textAlign: 'center',
+    letterSpacing: -1.2,
   },
-  playerCaption: {
+  heroText: {
     fontWeight: fontWeights.medium,
-    textAlign: 'center',
   },
-  mediaProgressTrack: {
-    height: 10,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  mediaProgressFill: {
-    height: '100%',
-    borderRadius: radius.pill,
-  },
-  captionBox: {
-    gap: spacing.md,
-    borderWidth: 2,
-    borderRadius: radius.xxl,
+  sectionHeader: {
     marginTop: spacing.section,
-    padding: spacing.xxl,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 5,
+    marginBottom: spacing.lg,
   },
-  captionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  captionLabel: {
+  sectionKicker: {
     fontWeight: fontWeights.extraBold,
+    letterSpacing: 0.9,
     textTransform: 'uppercase',
   },
-  captionText: {
+  sectionTitle: {
     fontWeight: fontWeights.black,
-    textAlign: 'center',
+    letterSpacing: -0.7,
   },
-  buttonRow: {
+  sourceGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
-    marginTop: spacing.section,
   },
-  halfButton: {
+  sourceCard: {
+    width: '47.5%',
+    minHeight: 168,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.14,
+    shadowRadius: 24,
+    elevation: 5,
+  },
+  sourceIcon: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+  },
+  sourceTitle: {
+    fontWeight: fontWeights.black,
+  },
+  sourceDescription: {
+    fontWeight: fontWeights.medium,
+  },
+  previewDevice: {
+    gap: spacing.lg,
+    borderWidth: 1,
+    borderRadius: radius.xxl,
+    marginTop: spacing.section,
+    padding: spacing.lg,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.16,
+    shadowRadius: 30,
+    elevation: 6,
+  },
+  previewScreen: {
+    minHeight: 270,
+    justifyContent: 'space-between',
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    overflow: 'hidden',
+  },
+  fakeVideoTopBar: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  fakeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.pill,
+  },
+  fakeVideoContent: {
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  fakeVideoTitle: {
+    fontWeight: fontWeights.black,
+  },
+  fakeCaption: {
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  fakeCaptionText: {
+    fontWeight: fontWeights.extraBold,
+    textAlign: 'center',
+  },
+  previewActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  previewButton: {
     flex: 1,
   },
 });

@@ -6,13 +6,13 @@ AccesIA es una aplicación móvil de asistencia digital inclusiva. Su objetivo e
 
 - Lectura accesible de textos con síntesis de voz, pausa, reanudación y control de velocidad.
 - Asistente por voz para dictar acciones y recibir confirmación visual y auditiva.
-- Subtítulos y descripciones para contenido multimedia.
+- Subtítulos flotantes activables desde cualquier pantalla para contenido con audio, videos, clases, música o conversaciones cercanas.
 - Ajustes de accesibilidad: alto contraste, tamaño de letra, velocidad de lectura, modo simplificado, accesos rápidos y soporte para lectores de pantalla.
 - Modo simplificado con acciones grandes y directas.
 
 ## Cómo se usa
 
-AccesIA se usa principalmente como una aplicación abierta por el usuario cuando necesita apoyo. No depende de estar funcionando permanentemente en segundo plano. En una versión móvil completa se podrían agregar funciones puntuales con notificaciones o permisos especiales, pero la experiencia principal se mantiene bajo control del usuario.
+AccesIA se usa principalmente como una aplicación abierta por el usuario cuando necesita apoyo. No depende de estar funcionando permanentemente en segundo plano. Para proteger privacidad y batería, las herramientas sensibles como micrófono y subtítulos se activan con una acción visible del usuario.
 
 ## Tecnología
 

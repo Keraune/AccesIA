@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibilityToggle } from '@/components/AccessibilityToggle';
 import { AccessibleButton } from '@/components/AccessibleButton';
@@ -14,21 +14,21 @@ import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import { appModules } from '@/data/appModules';
 
-const dailyActions = [
+const quickUseCases = [
   {
-    label: 'Escuchar un texto',
-    description: 'Lee información extensa sin forzar la vista.',
-    icon: 'volume-high-outline' as const,
+    label: 'Video o clase',
+    description: 'Activa subtítulos sobre el contenido.',
+    icon: 'play-circle-outline' as const,
   },
   {
-    label: 'Dictar una acción',
-    description: 'Usa la voz para reducir pasos táctiles.',
-    icon: 'mic-outline' as const,
+    label: 'Texto largo',
+    description: 'Escúchalo con voz natural.',
+    icon: 'document-text-outline' as const,
   },
   {
-    label: 'Ver subtítulos',
-    description: 'Comprende contenido con audio mediante texto visible.',
-    icon: 'chatbubbles-outline' as const,
+    label: 'Manos ocupadas',
+    description: 'Dicta una acción por voz.',
+    icon: 'mic-circle-outline' as const,
   },
 ];
 
@@ -39,20 +39,22 @@ export default function HomeScreen() {
     colors,
     fontMultiplier,
     lastChangeLabel,
+    liveCaptionsActive,
     settings,
     decreaseFontScale,
     increaseFontScale,
     setHighContrast,
     setSimplifiedMode,
+    startLiveCaptions,
   } = useAccessibility();
 
   return (
     <ScreenContainer>
-      <AppHeader />
+      <AppHeader subtitle="Lectura, voz y subtítulos en una sola app" />
 
       <View
         accessible
-        accessibilityLabel="Panel principal de AccesIA. Asistente de accesibilidad para lectura, voz, subtítulos y ajustes visuales."
+        accessibilityLabel="Panel principal de AccesIA. Herramientas de accesibilidad para leer, dictar, subtitular y adaptar la interfaz."
         style={[
           styles.heroCard,
           {
@@ -62,9 +64,12 @@ export default function HomeScreen() {
           },
         ]}
       >
+        <View style={styles.heroDecorOne} />
+        <View style={styles.heroDecorTwo} />
+
         <View style={styles.heroTopRow}>
           <View style={[styles.livePill, { backgroundColor: 'rgba(255,255,255,0.12)' }]}> 
-            <View style={[styles.liveDot, { backgroundColor: colors.secondary }]} />
+            <View style={[styles.liveDot, { backgroundColor: liveCaptionsActive ? colors.accent : colors.secondary }]} />
             <Text
               style={[
                 styles.livePillText,
@@ -75,10 +80,10 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Asistente listo
+              {liveCaptionsActive ? 'Subtítulos activos' : 'Asistente listo'}
             </Text>
           </View>
-          <IconBadge icon="accessibility-outline" inverted size="sm" tone="accent" />
+          <IconBadge icon="sparkles-outline" inverted size="sm" tone="accent" />
         </View>
 
         <Text
@@ -91,7 +96,7 @@ export default function HomeScreen() {
             },
           ]}
         >
-          Tu centro de accesibilidad diario.
+          Accesibilidad que aparece cuando la necesitas.
         </Text>
         <Text
           style={[
@@ -103,54 +108,63 @@ export default function HomeScreen() {
             },
           ]}
         >
-          Abre AccesIA cuando necesites escuchar textos, dictar acciones, activar subtítulos o adaptar la interfaz a tu forma de usar el móvil.
+          Usa AccesIA para escuchar textos, dictar acciones, activar subtítulos flotantes sobre contenido con audio y adaptar la app a tu forma de interactuar.
         </Text>
 
         <View style={styles.heroActions}>
           <AccessibleButton
-            accessibilityHint="Abre lectura accesible."
+            accessibilityHint="Activa subtítulos flotantes sobre la pantalla."
+            fullWidth={false}
+            icon="chatbox-ellipses-outline"
+            onPress={() => startLiveCaptions('device')}
+            style={styles.heroButton}
+            title="Subtitular ahora"
+            variant="accent"
+          />
+          <AccessibleButton
+            accessibilityHint="Abre lectura inteligente."
             fullWidth={false}
             icon="volume-high-outline"
             onPress={() => router.push('/lectura' as never)}
             style={styles.heroButton}
-            title="Leer ahora"
-            variant="accent"
-          />
-          <AccessibleButton
-            accessibilityHint="Abre el asistente por voz."
-            fullWidth={false}
-            icon="mic-outline"
-            onPress={() => router.push('/asistente' as never)}
-            style={styles.heroButton}
-            title="Usar voz"
+            title="Escuchar texto"
             variant="dark"
           />
         </View>
       </View>
 
-      <View style={styles.actionGrid}>
-        {dailyActions.map((item) => (
-          <View
-            accessible
+      <View style={styles.devicePreviewRow}>
+        {quickUseCases.map((item) => (
+          <Pressable
+            accessibilityHint={`Abrir función relacionada con ${item.label}`}
             accessibilityLabel={`${item.label}. ${item.description}`}
+            accessibilityRole="button"
             key={item.label}
-            style={[
-              styles.actionCard,
+            onPress={() => {
+              if (item.label === 'Video o clase') startLiveCaptions('video');
+              if (item.label === 'Texto largo') router.push('/lectura' as never);
+              if (item.label === 'Manos ocupadas') router.push('/asistente' as never);
+            }}
+            style={({ pressed }) => [
+              styles.useCaseCard,
               {
                 backgroundColor: colors.surface,
-                borderColor: colors.border,
+                borderColor: pressed ? colors.primary : colors.border,
+                opacity: pressed ? 0.9 : 1,
                 shadowColor: colors.shadow,
               },
             ]}
           >
-            <Ionicons color={colors.secondary} name={item.icon} size={22} />
+            <View style={[styles.useCaseIcon, { backgroundColor: colors.primarySoft }]}> 
+              <Ionicons color={colors.primary} name={item.icon} size={22} />
+            </View>
             <Text
               style={[
-                styles.actionTitle,
+                styles.useCaseTitle,
                 {
                   color: colors.text,
-                  fontSize: fontSizes.md * fontMultiplier,
-                  lineHeight: lineHeights.md * fontMultiplier,
+                  fontSize: fontSizes.sm * fontMultiplier,
+                  lineHeight: lineHeights.sm * fontMultiplier,
                 },
               ]}
             >
@@ -158,7 +172,7 @@ export default function HomeScreen() {
             </Text>
             <Text
               style={[
-                styles.actionText,
+                styles.useCaseText,
                 {
                   color: colors.textMuted,
                   fontSize: fontSizes.xs * fontMultiplier,
@@ -168,15 +182,26 @@ export default function HomeScreen() {
             >
               {item.description}
             </Text>
-          </View>
+          </Pressable>
         ))}
       </View>
 
+      <View style={styles.statusGrid}>
+        <View style={[styles.statusCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <Text style={[styles.statusNumber, { color: colors.text, fontSize: fontSizes.xxl * fontMultiplier }]}>{activeSettingsCount}</Text>
+          <Text style={[styles.statusLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>ajustes activos</Text>
+        </View>
+        <View style={[styles.statusCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <Text style={[styles.statusNumber, { color: liveCaptionsActive ? colors.accent : colors.text, fontSize: fontSizes.xxl * fontMultiplier }]}>{liveCaptionsActive ? 'ON' : 'OFF'}</Text>
+          <Text style={[styles.statusLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>subtítulos</Text>
+        </View>
+      </View>
+
       <InfoCard
-        icon="shield-checkmark-outline"
-        text="AccesIA se usa cuando el usuario necesita apoyo. Las preferencias se guardan localmente y el usuario mantiene el control de lectura, voz, subtítulos y ajustes visuales."
-        title="Control del usuario"
-        tone="primary"
+        icon="layers-outline"
+        text="AccesIA funciona como un centro de asistencia: abre la app, activa la herramienta que necesitas y mantén el control de lectura, voz, subtítulos y ajustes visuales."
+        title="¿Qué ofrece?"
+        tone="secondary"
       />
 
       <View style={styles.section}>
@@ -192,7 +217,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Funciones
+              Herramientas
             </Text>
             <Text
               style={[
@@ -204,7 +229,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              ¿Qué necesitas hacer?
+              Elige una función
             </Text>
           </View>
           <View style={[styles.countPill, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
@@ -218,7 +243,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              {settings.quickAccessEnabled ? 'Acceso rápido' : 'Reducido'}
+              {settings.quickAccessEnabled ? 'Menú rápido' : 'Reducido'}
             </Text>
           </View>
         </View>
@@ -274,7 +299,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              {lastChangeLabel} Ajustes activos: {activeSettingsCount}.
+              {lastChangeLabel}
             </Text>
           </View>
         </View>
@@ -332,10 +357,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxl,
     padding: spacing.xxl,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.24,
-    shadowRadius: 34,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 24 },
+    shadowOpacity: 0.28,
+    shadowRadius: 40,
+    elevation: 10,
+  },
+  heroDecorOne: {
+    position: 'absolute',
+    top: -72,
+    right: -64,
+    width: 178,
+    height: 178,
+    borderRadius: 120,
+    backgroundColor: 'rgba(124, 58, 237, 0.36)',
+  },
+  heroDecorTwo: {
+    position: 'absolute',
+    bottom: -92,
+    left: -70,
+    width: 190,
+    height: 190,
+    borderRadius: 130,
+    backgroundColor: 'rgba(6, 182, 212, 0.22)',
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -361,7 +404,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontWeight: fontWeights.black,
-    letterSpacing: -1.4,
+    letterSpacing: -1.5,
     marginBottom: spacing.md,
   },
   heroDescription: {
@@ -375,29 +418,55 @@ const styles = StyleSheet.create({
   heroButton: {
     flex: 1,
   },
-  actionGrid: {
+  devicePreviewRow: {
     flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.xl,
   },
-  actionCard: {
+  useCaseCard: {
     flex: 1,
-    minHeight: 132,
+    minHeight: 154,
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.md,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 3,
+    shadowRadius: 22,
+    elevation: 4,
   },
-  actionTitle: {
+  useCaseIcon: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+  },
+  useCaseTitle: {
     fontWeight: fontWeights.extraBold,
     marginTop: spacing.md,
   },
-  actionText: {
+  useCaseText: {
     fontWeight: fontWeights.medium,
     marginTop: spacing.xs,
+  },
+  statusGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xl,
+  },
+  statusCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+  },
+  statusNumber: {
+    fontWeight: fontWeights.black,
+  },
+  statusLabel: {
+    fontWeight: fontWeights.extraBold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   section: {
     gap: spacing.lg,

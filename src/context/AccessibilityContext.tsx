@@ -17,6 +17,7 @@ import {
 
 export type FontScaleMode = 'standard' | 'large' | 'extraLarge';
 export type ReadingSpeedMode = 0.75 | 1 | 1.25 | 1.5;
+export type LiveCaptionSource = 'device' | 'video' | 'music' | 'classroom';
 
 export type AccessibilitySettings = {
   highContrast: boolean;
@@ -35,6 +36,8 @@ type AccessibilityContextValue = {
   fontMultiplier: number;
   activeSettingsCount: number;
   lastChangeLabel: string;
+  liveCaptionsActive: boolean;
+  liveCaptionSource: LiveCaptionSource;
   setHighContrast: (enabled: boolean) => void;
   setSimplifiedMode: (enabled: boolean) => void;
   setSubtitlesEnabled: (enabled: boolean) => void;
@@ -43,6 +46,10 @@ type AccessibilityContextValue = {
   setScreenReaderSupportEnabled: (enabled: boolean) => void;
   setFontScale: (mode: FontScaleMode) => void;
   setReadingSpeed: (speed: ReadingSpeedMode) => void;
+  setLiveCaptionSource: (source: LiveCaptionSource) => void;
+  setLiveCaptionsActive: (enabled: boolean) => void;
+  startLiveCaptions: (source?: LiveCaptionSource) => void;
+  stopLiveCaptions: () => void;
   increaseFontScale: () => void;
   decreaseFontScale: () => void;
   applySettings: (partialSettings: Partial<AccessibilitySettings>, label?: string) => void;
@@ -50,6 +57,7 @@ type AccessibilityContextValue = {
 };
 
 const storageKey = 'accesia-accessibility-settings';
+const liveCaptionStorageKey = 'accesia-live-caption-source';
 
 const fontScaleMultipliers: Record<FontScaleMode, number> = {
   standard: 1,
@@ -73,7 +81,7 @@ export const defaultSettings: AccessibilitySettings = {
 const settingLabels: Partial<Record<keyof AccessibilitySettings, string>> = {
   highContrast: 'alto contraste',
   simplifiedMode: 'modo simplificado',
-  subtitlesEnabled: 'subtítulos automáticos',
+  subtitlesEnabled: 'subtítulos en pantalla',
   voiceCommandsEnabled: 'comandos de voz',
   quickAccessEnabled: 'accesos rápidos',
   screenReaderSupportEnabled: 'compatibilidad con lectores de pantalla',
@@ -102,6 +110,10 @@ function isReadingSpeedMode(value: unknown): value is ReadingSpeedMode {
   return value === 0.75 || value === 1 || value === 1.25 || value === 1.5;
 }
 
+function isLiveCaptionSource(value: unknown): value is LiveCaptionSource {
+  return value === 'device' || value === 'video' || value === 'music' || value === 'classroom';
+}
+
 function normalizeSettings(rawSettings: Partial<AccessibilitySettings>) {
   return {
     ...defaultSettings,
@@ -128,6 +140,18 @@ function loadInitialSettings() {
   }
 }
 
+function loadInitialCaptionSource(): LiveCaptionSource {
+  const storage = getStorage();
+  if (!storage) return 'device';
+
+  try {
+    const savedSource = storage.getItem(liveCaptionStorageKey);
+    return isLiveCaptionSource(savedSource) ? savedSource : 'device';
+  } catch {
+    return 'device';
+  }
+}
+
 function getChangeLabel(partialSettings: Partial<AccessibilitySettings>) {
   const firstKey = Object.keys(partialSettings)[0] as keyof AccessibilitySettings | undefined;
   return firstKey ? `Se actualizó ${settingLabels[firstKey] ?? 'una preferencia'}.` : 'Preferencias actualizadas.';
@@ -139,13 +163,21 @@ const AccessibilityContext = createContext<AccessibilityContextValue | null>(
 
 export function AccessibilityProvider({ children }: PropsWithChildren) {
   const [settings, setSettings] = useState<AccessibilitySettings>(loadInitialSettings);
-  const [lastChangeLabel, setLastChangeLabel] = useState('Configuración lista para personalizar la experiencia.');
+  const [lastChangeLabel, setLastChangeLabel] = useState('AccesIA está lista para ayudarte.');
+  const [liveCaptionsActive, setLiveCaptionsActiveState] = useState(false);
+  const [liveCaptionSource, setLiveCaptionSourceState] = useState<LiveCaptionSource>(loadInitialCaptionSource);
 
   useEffect(() => {
     const storage = getStorage();
     if (!storage) return;
     storage.setItem(storageKey, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    const storage = getStorage();
+    if (!storage) return;
+    storage.setItem(liveCaptionStorageKey, liveCaptionSource);
+  }, [liveCaptionSource]);
 
   const updateSettings = useCallback(
     (partialSettings: Partial<AccessibilitySettings>, label?: string) => {
@@ -170,20 +202,52 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       settings.screenReaderSupportEnabled,
     ].filter(Boolean).length;
 
+    const setLiveCaptionSource = (source: LiveCaptionSource) => {
+      setLiveCaptionSourceState(source);
+      setLastChangeLabel('Se cambió la fuente de subtítulos.');
+    };
+
+    const setLiveCaptionsActive = (enabled: boolean) => {
+      setLiveCaptionsActiveState(enabled);
+      updateSettings({ subtitlesEnabled: enabled }, enabled ? 'Subtítulos flotantes activados.' : 'Subtítulos flotantes desactivados.');
+    };
+
+    const startLiveCaptions = (source?: LiveCaptionSource) => {
+      if (source) {
+        setLiveCaptionSourceState(source);
+      }
+      setLiveCaptionsActiveState(true);
+      updateSettings({ subtitlesEnabled: true }, 'Subtítulos flotantes activados.');
+    };
+
+    const stopLiveCaptions = () => {
+      setLiveCaptionsActiveState(false);
+      updateSettings({ subtitlesEnabled: false }, 'Subtítulos flotantes detenidos.');
+    };
+
     return {
       settings,
       colors: settings.highContrast ? highContrastColors : lightColors,
       fontMultiplier,
       activeSettingsCount,
       lastChangeLabel,
+      liveCaptionsActive,
+      liveCaptionSource,
       setHighContrast: (enabled) => updateSettings({ highContrast: enabled }),
       setSimplifiedMode: (enabled) => updateSettings({ simplifiedMode: enabled }),
-      setSubtitlesEnabled: (enabled) => updateSettings({ subtitlesEnabled: enabled }),
+      setSubtitlesEnabled: (enabled) => {
+        setLiveCaptionsActiveState(enabled);
+        updateSettings({ subtitlesEnabled: enabled });
+      },
       setVoiceCommandsEnabled: (enabled) => updateSettings({ voiceCommandsEnabled: enabled }),
       setQuickAccessEnabled: (enabled) => updateSettings({ quickAccessEnabled: enabled }),
       setScreenReaderSupportEnabled: (enabled) => updateSettings({ screenReaderSupportEnabled: enabled }),
       setFontScale: (mode) => updateSettings({ fontScale: mode }),
       setReadingSpeed: (speed) => updateSettings({ readingSpeed: speed }),
+      setLiveCaptionSource,
+      setLiveCaptionsActive,
+      startLiveCaptions,
+      stopLiveCaptions,
       increaseFontScale: () => {
         const nextIndex = Math.min(currentFontIndex + 1, fontScaleOrder.length - 1);
         updateSettings({ fontScale: fontScaleOrder[nextIndex] }, 'Se aumentó el tamaño de letra.');
@@ -195,10 +259,12 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       applySettings: updateSettings,
       resetSettings: () => {
         setSettings(defaultSettings);
+        setLiveCaptionsActiveState(false);
+        setLiveCaptionSourceState('device');
         setLastChangeLabel('Se restablecieron las preferencias accesibles.');
       },
     };
-  }, [lastChangeLabel, settings, updateSettings]);
+  }, [lastChangeLabel, liveCaptionSource, liveCaptionsActive, settings, updateSettings]);
 
   return (
     <AccessibilityContext.Provider value={value}>

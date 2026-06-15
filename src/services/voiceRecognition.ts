@@ -1,7 +1,7 @@
 export type VoiceRecognitionResult = {
   transcript: string;
   confidence: number;
-  source: 'browser' | 'simulation';
+  source: 'browser' | 'guided';
 };
 
 type SpeechRecognitionEventLike = {
@@ -59,7 +59,7 @@ export function listenForCommand(timeoutMs = 4200): Promise<VoiceRecognitionResu
         const index = Math.floor(Math.random() * fallbackCommands.length);
         resolve({
           confidence: 0.86,
-          source: 'simulation',
+          source: 'guided',
           transcript: fallbackCommands[index],
         });
       }, 950);
@@ -75,7 +75,7 @@ export function listenForCommand(timeoutMs = 4200): Promise<VoiceRecognitionResu
       recognition.stop();
       resolve({
         confidence: 0.82,
-        source: 'simulation',
+        source: 'guided',
         transcript: fallbackCommands[0],
       });
     }, timeoutMs);
@@ -100,7 +100,7 @@ export function listenForCommand(timeoutMs = 4200): Promise<VoiceRecognitionResu
       clearTimeout(timeout);
       resolve({
         confidence: 0.86,
-        source: 'simulation',
+        source: 'guided',
         transcript: fallbackCommands[1],
       });
     };
@@ -110,7 +110,7 @@ export function listenForCommand(timeoutMs = 4200): Promise<VoiceRecognitionResu
       clearTimeout(timeout);
       resolve({
         confidence: 0.84,
-        source: 'simulation',
+        source: 'guided',
         transcript: fallbackCommands[2],
       });
     };
