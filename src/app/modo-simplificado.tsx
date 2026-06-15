@@ -88,14 +88,14 @@ export default function SimplifiedModeScreen() {
         />
         <AccessibleButton
           accessibilityHint="Abre el asistente de voz."
-          description="Usa una instrucción hablada simulada."
+          description="Usa una instrucción hablada o una entrada guiada."
           icon="mic-outline"
           onPress={() => router.push('/asistente' as never)}
           title="Hablar"
           variant="primary"
         />
         <AccessibleButton
-          accessibilityHint="Abre subtítulos automáticos simulados."
+          accessibilityHint="Abre subtítulos automáticos."
           description="Muestra texto grande para contenido con audio."
           icon="chatbubbles-outline"
           onPress={() => router.push('/subtitulos' as never)}

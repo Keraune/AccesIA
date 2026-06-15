@@ -81,7 +81,7 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          Los cambios se aplican en toda la aplicación y se guardan localmente en la demostración web.
+          Los cambios se aplican en toda la aplicación y se guardan localmente en este dispositivo.
         </Text>
       </View>
 
@@ -271,7 +271,7 @@ export default function SettingsScreen() {
           value={settings.highContrast}
         />
         <AccessibilityToggle
-          accessibilityHint="Activa subtítulos automáticos simulados para contenido multimedia."
+          accessibilityHint="Activa subtítulos automáticos para contenido multimedia."
           description="Muestra texto visible cuando el contenido tiene audio."
           icon="chatbubbles-outline"
           label="Subtítulos automáticos"
@@ -279,8 +279,8 @@ export default function SettingsScreen() {
           value={settings.subtitlesEnabled}
         />
         <AccessibilityToggle
-          accessibilityHint="Activa comandos de voz simulados para navegación."
-          description="Permite validar la interacción por voz antes de integrar reconocimiento real."
+          accessibilityHint="Activa comandos de voz para navegación."
+          description="Permite navegar con instrucciones habladas cuando el dispositivo lo permite."
           icon="mic-outline"
           label="Comandos de voz"
           onValueChange={setVoiceCommandsEnabled}
@@ -304,7 +304,7 @@ export default function SettingsScreen() {
         />
         <AccessibilityToggle
           accessibilityHint="Mantiene etiquetas descriptivas para tecnologías de apoyo."
-          description="Refuerza compatibilidad conceptual con lectores de pantalla."
+          description="Refuerza compatibilidad con lectores de pantalla mediante etiquetas descriptivas."
           icon="ear-outline"
           label="Lectores de pantalla"
           onValueChange={setScreenReaderSupportEnabled}

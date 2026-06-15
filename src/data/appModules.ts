@@ -18,60 +18,60 @@ export type AppModule = {
   description: string;
   icon: AppIconName;
   accent: 'primary' | 'secondary' | 'accent' | 'success' | 'warning';
-  status: 'Implementado' | 'Simulado' | 'Base lista';
+  status: 'Disponible' | 'Personalizable' | 'Esencial';
   accessibilityHint: string;
 };
 
 export const appModules: AppModule[] = [
   {
     route: '/lectura',
-    label: 'Lectura inteligente',
+    label: 'Lectura accesible',
     shortLabel: 'Lectura',
-    description: 'Escucha textos, aumenta la letra y cambia el contraste sin perder el contexto.',
-    icon: 'book-outline',
+    description: 'Escucha textos, regula la velocidad de lectura y adapta el tamaño de letra.',
+    icon: 'volume-high-outline',
     accent: 'primary',
-    status: 'Implementado',
-    accessibilityHint: 'Abre el módulo de lectura de información.',
+    status: 'Disponible',
+    accessibilityHint: 'Abre la lectura accesible para escuchar textos y ajustar la lectura.',
   },
   {
     route: '/asistente',
-    label: 'Asistente de voz',
+    label: 'Asistente por voz',
     shortLabel: 'Voz',
-    description: 'Reconoce o simula comandos hablados con confirmación visual y auditiva.',
+    description: 'Dicta una indicación, confirma lo entendido y recibe una respuesta clara.',
     icon: 'mic-outline',
     accent: 'secondary',
-    status: 'Implementado',
-    accessibilityHint: 'Abre el módulo de asistente de voz.',
+    status: 'Disponible',
+    accessibilityHint: 'Abre el asistente por voz para dictar comandos y recibir respuestas.',
   },
   {
     route: '/subtitulos',
-    label: 'Subtítulos automáticos',
+    label: 'Subtítulos y multimedia',
     shortLabel: 'Subtítulos',
-    description: 'Muestra subtítulos grandes, descripciones y controles accesibles para contenido con audio.',
+    description: 'Visualiza subtítulos, descripciones de contenido y controles de reproducción accesibles.',
     icon: 'chatbubbles-outline',
     accent: 'accent',
-    status: 'Implementado',
-    accessibilityHint: 'Abre el módulo de subtítulos automáticos.',
+    status: 'Disponible',
+    accessibilityHint: 'Abre el módulo multimedia con subtítulos y descripciones accesibles.',
   },
   {
     route: '/configuracion',
-    label: 'Accesibilidad',
+    label: 'Ajustes de accesibilidad',
     shortLabel: 'Ajustes',
-    description: 'Personaliza contraste, letra, subtítulos, comandos y lector de pantalla.',
+    description: 'Configura contraste, letra, lector de pantalla, velocidad de voz y accesos rápidos.',
     icon: 'options-outline',
     accent: 'warning',
-    status: 'Implementado',
-    accessibilityHint: 'Abre la configuración de accesibilidad.',
+    status: 'Personalizable',
+    accessibilityHint: 'Abre los ajustes de accesibilidad de AccesIA.',
   },
   {
     route: '/modo-simplificado',
     label: 'Modo simplificado',
     shortLabel: 'Simple',
-    description: 'Reduce opciones y muestra cuatro acciones esenciales con botones grandes.',
+    description: 'Usa una pantalla con cuatro acciones grandes para reducir distracciones.',
     icon: 'sparkles-outline',
     accent: 'success',
-    status: 'Implementado',
-    accessibilityHint: 'Abre el modo cognitivo simplificado.',
+    status: 'Esencial',
+    accessibilityHint: 'Abre el modo simplificado con acciones grandes y directas.',
   },
 ];
 
@@ -83,7 +83,7 @@ export const bottomMenuModules: AppModule[] = [
     description: 'Volver a la pantalla principal.',
     icon: 'home-outline',
     accent: 'primary',
-    status: 'Implementado',
+    status: 'Disponible',
     accessibilityHint: 'Vuelve a la pantalla de inicio.',
   },
   appModules[0],

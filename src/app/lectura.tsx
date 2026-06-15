@@ -154,7 +154,7 @@ export default function ReadingScreen() {
             },
           ]}
         >
-          Incluye síntesis de voz en web, pausa, reanudación y control de velocidad para personas con baja visión o adultos mayores.
+          Usa el motor de voz del dispositivo, con pausa, reanudación y control de velocidad para personas con baja visión o adultos mayores.
         </Text>
       </View>
 
@@ -287,10 +287,10 @@ export default function ReadingScreen() {
         icon={speechSupported ? 'checkmark-circle-outline' : 'warning-outline'}
         text={
           speechSupported
-            ? 'La lectura por voz usa la síntesis de voz disponible en el navegador durante la demostración web.'
-            : 'Tu entorno actual no expone síntesis de voz. El flujo visual se mantiene para la validación.'
+            ? 'La lectura por voz usa el motor de síntesis disponible en el dispositivo o navegador.'
+            : 'Este entorno no permite reproducir voz. El texto permanece visible para continuar la lectura manual.'
         }
-        title={speechSupported ? 'Síntesis de voz disponible' : 'Modo visual de demostración'}
+        title={speechSupported ? 'Lectura por voz disponible' : 'Voz no disponible'}
         tone={speechSupported ? 'success' : 'warning'}
       />
 

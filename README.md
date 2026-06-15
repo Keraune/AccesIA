@@ -1,56 +1,56 @@
-# Welcome to your Expo app 👋
+# AccesIA
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+AccesIA es una aplicación móvil de asistencia digital inclusiva. Su objetivo es ayudar al usuario a leer información, dictar acciones, comprender contenido con audio y adaptar la interfaz según sus necesidades visuales, auditivas, motoras o cognitivas.
 
-## Get started
+## Qué ofrece la aplicación
 
-1. Install dependencies
+- Lectura accesible de textos con síntesis de voz, pausa, reanudación y control de velocidad.
+- Asistente por voz para dictar acciones y recibir confirmación visual y auditiva.
+- Subtítulos y descripciones para contenido multimedia.
+- Ajustes de accesibilidad: alto contraste, tamaño de letra, velocidad de lectura, modo simplificado, accesos rápidos y soporte para lectores de pantalla.
+- Modo simplificado con acciones grandes y directas.
 
-   ```bash
-   npm install
-   ```
+## Cómo se usa
 
-2. Start the app
+AccesIA se usa principalmente como una aplicación abierta por el usuario cuando necesita apoyo. No depende de estar funcionando permanentemente en segundo plano. En una versión móvil completa se podrían agregar funciones puntuales con notificaciones o permisos especiales, pero la experiencia principal se mantiene bajo control del usuario.
 
-   ```bash
-   npx expo start
-   ```
+## Tecnología
 
-In the output, you'll find options to open the app in a
+- React Native
+- Expo
+- TypeScript
+- Expo Router
+- API de síntesis de voz disponible en web
+- Propiedades de accesibilidad nativas de React Native
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Ejecutar el proyecto
 
 ```bash
-npm run reset-project
+npm install
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+También puede ejecutarse con Expo:
 
-### Other setup steps
+```bash
+npx expo start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Estructura principal
 
-## Learn more
+```text
+src/app
+Pantallas principales de la aplicación.
 
-To learn more about developing your project with Expo, look at the following resources:
+src/components
+Componentes reutilizables: botones, tarjetas, encabezados, navegación e interruptores.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+src/context
+Estado global de accesibilidad.
 
-## Join the community
+src/constants
+Colores, tipografía y reglas de diseño.
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+src/services
+Servicios de voz y reconocimiento cuando el entorno lo permite.
+```

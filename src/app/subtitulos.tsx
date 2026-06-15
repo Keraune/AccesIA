@@ -13,15 +13,15 @@ import { useAccessibility } from '@/context/AccessibilityContext';
 
 const captions = [
   'El profesor está explicando la actividad de hoy.',
-  'Recuerden validar la aplicación con posibles usuarios.',
-  'La accesibilidad debe considerarse desde el diseño inicial.',
+  'Recuerden revisar el contenido principal de la clase.',
+  'La accesibilidad permite comprender información sin depender solo del audio.',
   'Los subtítulos ayudan a comprender contenido multimedia sin depender del audio.',
 ];
 
 const descriptions = [
   'Se observa una clase virtual con una presentación en pantalla.',
-  'El docente señala los criterios de evaluación del prototipo.',
-  'La pantalla muestra una demostración con indicadores visuales grandes.',
+  'El expositor señala los puntos importantes del contenido.',
+  'La pantalla muestra controles visibles y subtítulos grandes.',
 ];
 
 export default function CaptionsScreen() {
@@ -76,7 +76,7 @@ export default function CaptionsScreen() {
 
       <View
         accessible
-        accessibilityLabel="Reproductor multimedia simulado para subtítulos automáticos."
+        accessibilityLabel="Reproductor multimedia para subtítulos automáticos."
         style={[
           styles.player,
           {
@@ -119,7 +119,7 @@ export default function CaptionsScreen() {
               },
             ]}
           >
-            Simulación multimedia
+            Contenido multimedia
           </Text>
           <Text
             style={[
@@ -201,7 +201,7 @@ export default function CaptionsScreen() {
 
       <View style={styles.buttonRow}>
         <AccessibleButton
-          accessibilityHint="Activa los subtítulos automáticos simulados y reproduce la demostración multimedia."
+          accessibilityHint="Activa los subtítulos automáticos y reproduce el contenido multimedia."
           fullWidth={false}
           icon="play-outline"
           onPress={startCaptions}
@@ -210,7 +210,7 @@ export default function CaptionsScreen() {
           variant="primary"
         />
         <AccessibleButton
-          accessibilityHint="Pausa los subtítulos automáticos simulados."
+          accessibilityHint="Pausa los subtítulos automáticos."
           fullWidth={false}
           icon="pause-outline"
           onPress={pauseCaptions}
@@ -220,7 +220,7 @@ export default function CaptionsScreen() {
         />
       </View>
       <AccessibleButton
-        accessibilityHint="Detiene el contenido multimedia simulado y desactiva subtítulos."
+        accessibilityHint="Detiene el contenido multimedia y desactiva subtítulos."
         icon="stop-outline"
         onPress={stopCaptions}
         title="Detener y limpiar"

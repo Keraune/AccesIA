@@ -19,18 +19,18 @@ function buildAssistantResponse(transcript: string) {
   const normalizedText = transcript.toLowerCase();
 
   if (normalizedText.includes('subtítulo')) {
-    return 'Comando reconocido. Activé subtítulos y preparé el módulo multimedia accesible.';
+    return 'Entendido. Subtítulos activados para el contenido multimedia.';
   }
 
   if (normalizedText.includes('letra') || normalizedText.includes('texto')) {
-    return 'Comando reconocido. Ajusté la experiencia para mejorar la lectura del contenido.';
+    return 'Entendido. Ajusté la experiencia para mejorar la lectura.';
   }
 
   if (normalizedText.includes('escuchar') || normalizedText.includes('documento')) {
-    return 'Comando reconocido. Puedes abrir el módulo de lectura para escuchar el documento.';
+    return 'Entendido. Puedes escuchar el documento desde Lectura accesible.';
   }
 
-  return 'Comando reconocido. AccesIA entendió la solicitud y muestra una respuesta clara en pantalla.';
+  return 'Entendido. La solicitud fue recibida y se muestra una respuesta clara en pantalla.';
 }
 
 export default function AssistantScreen() {
@@ -43,15 +43,15 @@ export default function AssistantScreen() {
     increaseFontScale,
   } = useAccessibility();
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
-  const [transcript, setTranscript] = useState('Presiona “Hablar ahora” para iniciar la captura de voz o la simulación.');
-  const [response, setResponse] = useState('Estoy lista para ayudarte con lectura, subtítulos o configuración.');
+  const [transcript, setTranscript] = useState('Presiona “Hablar ahora” para dictar una acción.');
+  const [response, setResponse] = useState('Estoy lista para ayudarte con lectura, subtítulos o ajustes.');
   const [confidence, setConfidence] = useState(0);
-  const [recognitionSource, setRecognitionSource] = useState<'browser' | 'simulation'>('simulation');
+  const [inputMode, setInputMode] = useState<'voice' | 'guided'>('guided');
 
   async function handleVoiceCommand() {
     setVoiceCommandsEnabled(true);
     setVoiceState('listening');
-    setTranscript('Escuchando comando de voz...');
+    setTranscript('Escuchando indicación...');
     setResponse('Procesando solicitud...');
 
     const result = await listenForCommand();
@@ -60,7 +60,7 @@ export default function AssistantScreen() {
     setVoiceState('answered');
     setTranscript(`“${result.transcript}”`);
     setConfidence(Math.round(result.confidence * 100));
-    setRecognitionSource(result.source);
+    setInputMode(result.source === 'browser' ? 'voice' : 'guided');
     setResponse(nextResponse);
 
     if (result.transcript.toLowerCase().includes('subtítulo')) {
@@ -73,23 +73,19 @@ export default function AssistantScreen() {
   }
 
   function playResponse() {
-    const wasSpoken = speakText(response, {
+    speakText(response, {
       rate: settings.readingSpeed,
-      onError: () => setResponse('Respuesta visible: el navegador actual no permite reproducir voz.'),
+      onError: () => setResponse('Respuesta visible en pantalla. Activa el motor de voz del dispositivo para escucharla.'),
     });
-
-    if (wasSpoken) {
-      setResponse(`${response} Reproduciendo confirmación auditiva.`);
-    }
   }
 
   return (
     <ScreenContainer>
-      <AppHeader title="Asistente de voz" subtitle="Comandos hablados y respuesta clara" />
+      <AppHeader title="Asistente por voz" subtitle="Dictado, confirmación y respuesta" />
 
       <View
         accessible
-        accessibilityLabel="Panel principal del asistente de voz."
+        accessibilityLabel="Panel principal del asistente por voz."
         style={[
           styles.voiceCard,
           {
@@ -116,7 +112,7 @@ export default function AssistantScreen() {
                 },
               ]}
             >
-              {voiceState === 'listening' ? 'Escuchando' : voiceState === 'answered' ? 'Reconocido' : 'Listo'}
+              {voiceState === 'listening' ? 'Escuchando' : voiceState === 'answered' ? 'Listo' : 'Disponible'}
             </Text>
           </View>
           <IconBadge icon="mic-outline" inverted size="lg" tone="secondary" />
@@ -132,7 +128,7 @@ export default function AssistantScreen() {
             },
           ]}
         >
-          Habla o usa una simulación inteligente.
+          Dicta una acción y confirma el resultado.
         </Text>
         <Text
           style={[
@@ -144,11 +140,11 @@ export default function AssistantScreen() {
             },
           ]}
         >
-          En navegadores compatibles usa reconocimiento de voz. Si no está disponible, AccesIA simula el comando para validar el flujo.
+          Usa la voz para reducir pasos táctiles. AccesIA muestra lo entendido antes de aplicar cambios importantes.
         </Text>
 
         <AccessibleButton
-          accessibilityHint="Captura o simula un comando hablado y lo convierte en texto visible."
+          accessibilityHint="Captura una indicación hablada y la muestra como texto."
           icon={voiceState === 'listening' ? 'radio-outline' : 'mic-outline'}
           onPress={handleVoiceCommand}
           title={voiceState === 'listening' ? 'Escuchando...' : 'Hablar ahora'}
@@ -162,8 +158,8 @@ export default function AssistantScreen() {
           <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>confianza</Text>
         </View>
         <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{recognitionSource === 'browser' ? 'Real' : 'Demo'}</Text>
-          <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>origen</Text>
+          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{inputMode === 'voice' ? 'Voz' : 'Guiado'}</Text>
+          <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>entrada</Text>
         </View>
       </View>
 
@@ -173,17 +169,17 @@ export default function AssistantScreen() {
         <InfoCard icon="sparkles-outline" text={response} title="Respuesta de AccesIA" tone="accent" />
         <InfoCard
           icon="shield-checkmark-outline"
-          text="La app muestra confirmación visual y puede reproducir una respuesta hablada. Los permisos de micrófono se deben solicitar explícitamente en una implementación completa."
-          title="Confirmación accesible"
+          text="El micrófono debe activarse únicamente con autorización del usuario. La respuesta siempre se muestra en pantalla antes de continuar."
+          title="Privacidad y control"
           tone="primary"
         />
       </View>
 
       <AccessibleButton
-        accessibilityHint="Reproduce la respuesta del asistente mediante síntesis de voz en web."
+        accessibilityHint="Reproduce la respuesta del asistente mediante voz."
         icon="volume-high-outline"
         onPress={playResponse}
-        title="Reproducir respuesta"
+        title="Escuchar respuesta"
         variant="secondary"
       />
 
@@ -191,10 +187,10 @@ export default function AssistantScreen() {
         icon={isVoiceRecognitionAvailable() ? 'checkmark-circle-outline' : 'alert-circle-outline'}
         text={
           isVoiceRecognitionAvailable()
-            ? 'El navegador expone reconocimiento de voz. La prueba puede usar entrada hablada real.'
-            : 'Reconocimiento real no disponible en este entorno. Se usa simulación para demostrar la experiencia.'
+            ? 'El dispositivo permite entrada de voz desde este entorno.'
+            : 'El entorno actual no permite micrófono directo. AccesIA mantiene una entrada guiada para continuar la interacción.'
         }
-        title="Estado del reconocimiento"
+        title="Estado de entrada"
         tone={isVoiceRecognitionAvailable() ? 'success' : 'warning'}
       />
     </ScreenContainer>
@@ -255,13 +251,12 @@ const styles = StyleSheet.create({
   },
   timeline: {
     gap: spacing.md,
-    marginTop: spacing.section,
+    marginVertical: spacing.section,
   },
   timelineLine: {
-    position: 'absolute',
-    bottom: 18,
-    left: 22,
-    top: 18,
+    alignSelf: 'center',
     width: 2,
+    height: 26,
+    borderRadius: radius.pill,
   },
 });

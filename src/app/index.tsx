@@ -14,32 +14,22 @@ import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import { appModules } from '@/data/appModules';
 
-const insightCards = [
+const dailyActions = [
   {
-    label: 'Perfiles',
-    value: '5',
-    description: 'usuarios objetivo',
-    icon: 'people-outline' as const,
+    label: 'Escuchar un texto',
+    description: 'Lee información extensa sin forzar la vista.',
+    icon: 'volume-high-outline' as const,
   },
   {
-    label: 'Módulos',
-    value: '4',
-    description: 'funcionales',
-    icon: 'grid-outline' as const,
+    label: 'Dictar una acción',
+    description: 'Usa la voz para reducir pasos táctiles.',
+    icon: 'mic-outline' as const,
   },
   {
-    label: 'Prueba',
-    value: '3-5',
-    description: 'usuarios',
-    icon: 'analytics-outline' as const,
+    label: 'Ver subtítulos',
+    description: 'Comprende contenido con audio mediante texto visible.',
+    icon: 'chatbubbles-outline' as const,
   },
-];
-
-const improvements = [
-  'Botones principales más grandes.',
-  'Menús con menos pasos.',
-  'Contraste mejorado.',
-  'Ayuda contextual visible.',
 ];
 
 export default function HomeScreen() {
@@ -62,7 +52,7 @@ export default function HomeScreen() {
 
       <View
         accessible
-        accessibilityLabel="Panel principal de AccesIA. Aplicación de asistencia digital inclusiva para personas con discapacidad y adultos mayores."
+        accessibilityLabel="Panel principal de AccesIA. Asistente de accesibilidad para lectura, voz, subtítulos y ajustes visuales."
         style={[
           styles.heroCard,
           {
@@ -85,7 +75,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Propuesta funcional activa
+              Asistente listo
             </Text>
           </View>
           <IconBadge icon="accessibility-outline" inverted size="sm" tone="accent" />
@@ -101,7 +91,7 @@ export default function HomeScreen() {
             },
           ]}
         >
-          Accesibilidad moderna para cada usuario.
+          Tu centro de accesibilidad diario.
         </Text>
         <Text
           style={[
@@ -113,39 +103,39 @@ export default function HomeScreen() {
             },
           ]}
         >
-          Lectura por voz, comandos hablados, subtítulos, alto contraste, texto escalable y modo simple en una experiencia móvil clara.
+          Abre AccesIA cuando necesites escuchar textos, dictar acciones, activar subtítulos o adaptar la interfaz a tu forma de usar el móvil.
         </Text>
 
         <View style={styles.heroActions}>
           <AccessibleButton
-            accessibilityHint="Abre el módulo de lectura accesible."
+            accessibilityHint="Abre lectura accesible."
             fullWidth={false}
-            icon="book-outline"
+            icon="volume-high-outline"
             onPress={() => router.push('/lectura' as never)}
             style={styles.heroButton}
-            title="Escuchar"
+            title="Leer ahora"
             variant="accent"
           />
           <AccessibleButton
-            accessibilityHint="Abre el modo simplificado."
+            accessibilityHint="Abre el asistente por voz."
             fullWidth={false}
-            icon="sparkles-outline"
-            onPress={() => router.push('/modo-simplificado' as never)}
+            icon="mic-outline"
+            onPress={() => router.push('/asistente' as never)}
             style={styles.heroButton}
-            title="Modo simple"
+            title="Usar voz"
             variant="dark"
           />
         </View>
       </View>
 
-      <View style={styles.insightGrid}>
-        {insightCards.map((item) => (
+      <View style={styles.actionGrid}>
+        {dailyActions.map((item) => (
           <View
             accessible
-            accessibilityLabel={`${item.label}: ${item.value}. ${item.description}`}
+            accessibilityLabel={`${item.label}. ${item.description}`}
             key={item.label}
             style={[
-              styles.insightCard,
+              styles.actionCard,
               {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
@@ -153,22 +143,22 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <Ionicons color={colors.secondary} name={item.icon} size={20} />
+            <Ionicons color={colors.secondary} name={item.icon} size={22} />
             <Text
               style={[
-                styles.insightValue,
+                styles.actionTitle,
                 {
                   color: colors.text,
-                  fontSize: fontSizes.xl * fontMultiplier,
-                  lineHeight: lineHeights.xl * fontMultiplier,
+                  fontSize: fontSizes.md * fontMultiplier,
+                  lineHeight: lineHeights.md * fontMultiplier,
                 },
               ]}
             >
-              {item.value}
+              {item.label}
             </Text>
             <Text
               style={[
-                styles.insightLabel,
+                styles.actionText,
                 {
                   color: colors.textMuted,
                   fontSize: fontSizes.xs * fontMultiplier,
@@ -183,10 +173,10 @@ export default function HomeScreen() {
       </View>
 
       <InfoCard
-        icon="checkmark-circle-outline"
-        text="Se aplicaron mejoras de botones, contraste, navegación simplificada y ayuda contextual para responder a la evaluación heurística."
-        title="Mejoras aplicadas"
-        tone="success"
+        icon="shield-checkmark-outline"
+        text="AccesIA se usa cuando el usuario necesita apoyo. Las preferencias se guardan localmente y el usuario mantiene el control de lectura, voz, subtítulos y ajustes visuales."
+        title="Control del usuario"
+        tone="primary"
       />
 
       <View style={styles.section}>
@@ -202,7 +192,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Módulos principales
+              Funciones
             </Text>
             <Text
               style={[
@@ -214,7 +204,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Menú de asistencia
+              ¿Qué necesitas hacer?
             </Text>
           </View>
           <View style={[styles.countPill, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
@@ -228,7 +218,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              {settings.quickAccessEnabled ? `${appModules.length} opciones` : 'Oculto'}
+              {settings.quickAccessEnabled ? 'Acceso rápido' : 'Reducido'}
             </Text>
           </View>
         </View>
@@ -242,8 +232,8 @@ export default function HomeScreen() {
         ) : (
           <InfoCard
             icon="eye-off-outline"
-            text="Los accesos rápidos están desactivados. Puedes volver a activarlos desde Configuración."
-            title="Menú simplificado"
+            text="Los accesos rápidos están ocultos para reducir distracciones. Puedes volver a activarlos desde Ajustes."
+            title="Interfaz reducida"
             tone="warning"
           />
         )}
@@ -332,26 +322,6 @@ export default function HomeScreen() {
           value={settings.simplifiedMode}
         />
       </View>
-
-      <View style={styles.improvementPanel}>
-        {improvements.map((item) => (
-          <View key={item} style={[styles.improvementItem, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-            <Ionicons color={colors.success} name="checkmark-circle-outline" size={18} />
-            <Text
-              style={[
-                styles.improvementText,
-                {
-                  color: colors.text,
-                  fontSize: fontSizes.sm * fontMultiplier,
-                  lineHeight: lineHeights.sm * fontMultiplier,
-                },
-              ]}
-            >
-              {item}
-            </Text>
-          </View>
-        ))}
-      </View>
     </ScreenContainer>
   );
 }
@@ -405,14 +375,14 @@ const styles = StyleSheet.create({
   heroButton: {
     flex: 1,
   },
-  insightGrid: {
+  actionGrid: {
     flexDirection: 'row',
     gap: spacing.md,
     marginTop: spacing.xl,
   },
-  insightCard: {
+  actionCard: {
     flex: 1,
-    minHeight: 118,
+    minHeight: 132,
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.md,
@@ -421,12 +391,13 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 3,
   },
-  insightValue: {
-    fontWeight: fontWeights.black,
+  actionTitle: {
+    fontWeight: fontWeights.extraBold,
     marginTop: spacing.md,
   },
-  insightLabel: {
+  actionText: {
     fontWeight: fontWeights.medium,
+    marginTop: spacing.xs,
   },
   section: {
     gap: spacing.lg,
@@ -494,21 +465,5 @@ const styles = StyleSheet.create({
   },
   quickButton: {
     flex: 1,
-  },
-  improvementPanel: {
-    gap: spacing.md,
-    marginTop: spacing.section,
-  },
-  improvementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-  },
-  improvementText: {
-    flex: 1,
-    fontWeight: fontWeights.extraBold,
   },
 });
