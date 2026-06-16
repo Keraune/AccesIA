@@ -28,5 +28,5 @@ export const touchTarget = {
 export const appLayout = {
   maxContentWidth: 520,
   horizontalPadding: 20,
-  bottomNavigationHeight: 86,
+  bottomNavigationHeight: 112,
 };

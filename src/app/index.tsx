@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibilityToggle } from '@/components/AccessibilityToggle';
 import { AccessibleButton } from '@/components/AccessibleButton';
@@ -12,23 +12,53 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
-import { appModules } from '@/data/appModules';
+import { useProfile } from '@/context/ProfileContext';
+import { appModules, type AppIconName, type AppRoute } from '@/data/appModules';
+import { startAndroidFloatingAssistant } from '@/services/systemOverlay';
 
-const quickUseCases = [
+type ProductFeature = {
+  label: string;
+  description: string;
+  icon: AppIconName;
+  route: AppRoute;
+};
+
+const productFeatures: ProductFeature[] = [
   {
-    label: 'Video o clase',
-    description: 'Activa subtítulos sobre el contenido.',
-    icon: 'play-circle-outline' as const,
+    label: 'Subtítulos flotantes',
+    description: 'Burbuja de Android para ver texto sobre otras apps.',
+    icon: 'chatbox-ellipses-outline',
+    route: '/subtitulos',
   },
   {
-    label: 'Texto largo',
-    description: 'Escúchalo con voz natural.',
-    icon: 'document-text-outline' as const,
+    label: 'Lectura por voz',
+    description: 'Pega texto y escúchalo con ritmo configurable.',
+    icon: 'volume-high-outline',
+    route: '/lectura',
   },
   {
-    label: 'Manos ocupadas',
-    description: 'Dicta una acción por voz.',
-    icon: 'mic-circle-outline' as const,
+    label: 'Dictado y comandos',
+    description: 'Controla acciones por voz cuando tú lo decidas.',
+    icon: 'mic-outline',
+    route: '/asistente',
+  },
+  {
+    label: 'Accesibilidad visual',
+    description: 'Ajusta contraste, tamaño de letra y lectura clara.',
+    icon: 'eye-outline',
+    route: '/configuracion',
+  },
+  {
+    label: 'Modo simple',
+    description: 'Menos opciones, botones grandes y acciones directas.',
+    icon: 'sparkles-outline',
+    route: '/modo-simplificado',
+  },
+  {
+    label: 'Perfil personal',
+    description: 'Guarda preferencias de uso para adaptar la app.',
+    icon: 'person-circle-outline',
+    route: '/perfil',
   },
 ];
 
@@ -36,9 +66,11 @@ export default function HomeScreen() {
   const router = useRouter();
   const {
     activeSettingsCount,
+    captionFontMultiplier,
     colors,
     fontMultiplier,
     lastChangeLabel,
+    liveCaptionSource,
     liveCaptionsActive,
     settings,
     decreaseFontScale,
@@ -47,106 +79,135 @@ export default function HomeScreen() {
     setSimplifiedMode,
     startLiveCaptions,
   } = useAccessibility();
+  const { profile, signedIn } = useProfile();
+
+  async function openSystemBubble() {
+    try {
+      const result = await startAndroidFloatingAssistant({
+        source: liveCaptionSource,
+        theme: settings.captionTheme,
+        scale: captionFontMultiplier,
+        minimize: true,
+      });
+
+      if (result.started) {
+        startLiveCaptions(liveCaptionSource);
+        return;
+      }
+
+      if (result.reason === 'permission-required') {
+        Alert.alert(
+          'Permiso requerido',
+          'Activa “Mostrar sobre otras apps” para usar la burbuja de AccesIA fuera de la aplicación.',
+        );
+        return;
+      }
+
+      Alert.alert(
+        'APK nativa requerida',
+        'La burbuja del sistema funciona en Android mediante una compilación nativa. Puedes configurar subtítulos desde la pantalla Subtítulos.',
+      );
+      router.push('/subtitulos' as never);
+    } catch {
+      Alert.alert(
+        'No se pudo abrir la burbuja',
+        'Revisa el permiso de superposición o vuelve a intentarlo desde Ajustes.',
+      );
+    }
+  }
 
   return (
     <ScreenContainer>
-      <AppHeader subtitle="Lectura, voz y subtítulos en una sola app" />
+      <AppHeader subtitle="Asistencia accesible para leer, escuchar y subtitular" />
 
       <View
         accessible
-        accessibilityLabel="Panel principal de AccesIA. Herramientas de accesibilidad para leer, dictar, subtitular y adaptar la interfaz."
+        accessibilityLabel="Inicio de AccesIA. Herramientas para subtítulos, lectura por voz, dictado, accesibilidad visual, modo simple y perfil personal."
         style={[
           styles.heroCard,
           {
-            backgroundColor: colors.primaryDeep,
-            borderColor: settings.highContrast ? colors.border : 'rgba(255,255,255,0.14)',
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
             shadowColor: colors.shadow,
           },
         ]}
       >
-        <View style={styles.heroDecorOne} />
-        <View style={styles.heroDecorTwo} />
-
         <View style={styles.heroTopRow}>
-          <View style={[styles.livePill, { backgroundColor: 'rgba(255,255,255,0.12)' }]}> 
-            <View style={[styles.liveDot, { backgroundColor: liveCaptionsActive ? colors.accent : colors.secondary }]} />
+          <View style={[styles.statusPill, { backgroundColor: liveCaptionsActive ? colors.successSoft : colors.primarySoft }]}> 
+            <View style={[styles.statusDot, { backgroundColor: liveCaptionsActive ? colors.success : colors.primary }]} />
             <Text
               style={[
-                styles.livePillText,
+                styles.statusPillText,
                 {
-                  color: colors.white,
+                  color: liveCaptionsActive ? colors.success : colors.primary,
                   fontSize: fontSizes.xs * fontMultiplier,
                   lineHeight: lineHeights.xs * fontMultiplier,
                 },
               ]}
             >
-              {liveCaptionsActive ? 'Subtítulos activos' : 'Asistente listo'}
+              {liveCaptionsActive ? 'Subtítulos activos' : 'Listo para asistir'}
             </Text>
           </View>
-          <IconBadge icon="sparkles-outline" inverted size="sm" tone="accent" />
+          <IconBadge icon="accessibility-outline" size="md" tone="accent" />
         </View>
 
         <Text
           style={[
             styles.heroTitle,
             {
-              color: colors.white,
+              color: colors.text,
               fontSize: fontSizes.hero * fontMultiplier,
               lineHeight: lineHeights.hero * fontMultiplier,
             },
           ]}
         >
-          Accesibilidad que aparece cuando la necesitas.
+          {signedIn ? `Hola, ${profile.name.split(' ')[0]}. ¿Qué apoyo necesitas ahora?` : 'Asistencia accesible cuando la necesitas.'}
         </Text>
         <Text
           style={[
             styles.heroDescription,
             {
-              color: 'rgba(255,255,255,0.78)',
+              color: colors.textMuted,
               fontSize: fontSizes.md * fontMultiplier,
               lineHeight: lineHeights.md * fontMultiplier,
             },
           ]}
         >
-          Usa AccesIA para escuchar textos, dictar acciones, activar subtítulos flotantes sobre contenido con audio y adaptar la app a tu forma de interactuar.
+          AccesIA reúne subtítulos flotantes, lectura por voz, dictado, ajustes visuales, modo simple y perfil personal en una experiencia limpia y fácil de usar.
         </Text>
 
         <View style={styles.heroActions}>
           <AccessibleButton
-            accessibilityHint="Activa subtítulos flotantes sobre la pantalla."
+            accessibilityHint="Solicita el permiso y abre la burbuja flotante del sistema Android."
             fullWidth={false}
-            icon="chatbox-ellipses-outline"
-            onPress={() => startLiveCaptions('device')}
+            icon="albums-outline"
+            onPress={() => void openSystemBubble()}
             style={styles.heroButton}
-            title="Subtitular ahora"
+            title="Abrir burbuja"
             variant="accent"
           />
           <AccessibleButton
-            accessibilityHint="Abre lectura inteligente."
+            accessibilityHint="Abre la pantalla de lectura por voz."
             fullWidth={false}
             icon="volume-high-outline"
             onPress={() => router.push('/lectura' as never)}
             style={styles.heroButton}
             title="Escuchar texto"
-            variant="dark"
+            variant="secondary"
           />
         </View>
       </View>
 
-      <View style={styles.devicePreviewRow}>
-        {quickUseCases.map((item) => (
+      <View style={styles.featureGrid}>
+        {productFeatures.map((item) => (
           <Pressable
-            accessibilityHint={`Abrir función relacionada con ${item.label}`}
+            accessibilityHint={`Abrir ${item.label}`}
             accessibilityLabel={`${item.label}. ${item.description}`}
             accessibilityRole="button"
             key={item.label}
-            onPress={() => {
-              if (item.label === 'Video o clase') startLiveCaptions('video');
-              if (item.label === 'Texto largo') router.push('/lectura' as never);
-              if (item.label === 'Manos ocupadas') router.push('/asistente' as never);
-            }}
+            onPress={() => router.push(item.route as never)}
             style={({ pressed }) => [
-              styles.useCaseCard,
+              styles.featureCard,
               {
                 backgroundColor: colors.surface,
                 borderColor: pressed ? colors.primary : colors.border,
@@ -155,12 +216,12 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <View style={[styles.useCaseIcon, { backgroundColor: colors.primarySoft }]}> 
+            <View style={[styles.featureIcon, { backgroundColor: colors.primarySoft }]}> 
               <Ionicons color={colors.primary} name={item.icon} size={22} />
             </View>
             <Text
               style={[
-                styles.useCaseTitle,
+                styles.featureTitle,
                 {
                   color: colors.text,
                   fontSize: fontSizes.sm * fontMultiplier,
@@ -172,7 +233,7 @@ export default function HomeScreen() {
             </Text>
             <Text
               style={[
-                styles.useCaseText,
+                styles.featureText,
                 {
                   color: colors.textMuted,
                   fontSize: fontSizes.xs * fontMultiplier,
@@ -192,15 +253,15 @@ export default function HomeScreen() {
           <Text style={[styles.statusLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>ajustes activos</Text>
         </View>
         <View style={[styles.statusCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.statusNumber, { color: liveCaptionsActive ? colors.accent : colors.text, fontSize: fontSizes.xxl * fontMultiplier }]}>{liveCaptionsActive ? 'ON' : 'OFF'}</Text>
+          <Text style={[styles.statusNumber, { color: liveCaptionsActive ? colors.accent : colors.text, fontSize: fontSizes.xxl * fontMultiplier }]}>{liveCaptionsActive ? 'Activo' : 'Inactivo'}</Text>
           <Text style={[styles.statusLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>subtítulos</Text>
         </View>
       </View>
 
       <InfoCard
-        icon="layers-outline"
-        text="AccesIA funciona como un centro de asistencia: abre la app, activa la herramienta que necesitas y mantén el control de lectura, voz, subtítulos y ajustes visuales."
-        title="¿Qué ofrece?"
+        icon="phone-portrait-outline"
+        text="La burbuja flotante se administra desde Android y puede mantenerse visible sobre otras aplicaciones cuando el permiso está activo."
+        title="Burbuja del sistema"
         tone="secondary"
       />
 
@@ -229,7 +290,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Elige una función
+              Funciones principales
             </Text>
           </View>
           <View style={[styles.countPill, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
@@ -243,7 +304,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              {settings.quickAccessEnabled ? 'Menú rápido' : 'Reducido'}
+              {settings.quickAccessEnabled ? 'Visible' : 'Reducido'}
             </Text>
           </View>
         </View>
@@ -268,7 +329,7 @@ export default function HomeScreen() {
         style={[
           styles.quickPanel,
           {
-            backgroundColor: colors.surfaceGlass,
+            backgroundColor: colors.surface,
             borderColor: colors.border,
             shadowColor: colors.shadow,
           },
@@ -287,7 +348,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              Accesibilidad rápida
+              Ajustes rápidos
             </Text>
             <Text
               style={[
@@ -337,7 +398,7 @@ export default function HomeScreen() {
           accessibilityHint="Activa una experiencia con menos opciones visibles y textos más directos."
           description="Reduce la carga visual y cognitiva."
           icon="sparkles-outline"
-          label="Modo simplificado"
+          label="Modo simple"
           onValueChange={(enabled) => {
             setSimplifiedMode(enabled);
             if (enabled) {
@@ -356,29 +417,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.xxl,
     padding: spacing.xxl,
-    overflow: 'hidden',
-    shadowOffset: { width: 0, height: 24 },
-    shadowOpacity: 0.28,
-    shadowRadius: 40,
-    elevation: 10,
-  },
-  heroDecorOne: {
-    position: 'absolute',
-    top: -72,
-    right: -64,
-    width: 178,
-    height: 178,
-    borderRadius: 120,
-    backgroundColor: 'rgba(124, 58, 237, 0.36)',
-  },
-  heroDecorTwo: {
-    position: 'absolute',
-    bottom: -92,
-    left: -70,
-    width: 190,
-    height: 190,
-    borderRadius: 130,
-    backgroundColor: 'rgba(6, 182, 212, 0.22)',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.14,
+    shadowRadius: 30,
+    elevation: 6,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -386,7 +428,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.xxl,
   },
-  livePill: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -394,17 +436,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  liveDot: {
+  statusDot: {
     width: 8,
     height: 8,
     borderRadius: radius.pill,
   },
-  livePillText: {
+  statusPillText: {
     fontWeight: fontWeights.extraBold,
+    textTransform: 'uppercase',
   },
   heroTitle: {
     fontWeight: fontWeights.black,
-    letterSpacing: -1.5,
+    letterSpacing: -1.4,
     marginBottom: spacing.md,
   },
   heroDescription: {
@@ -412,40 +455,43 @@ const styles = StyleSheet.create({
   },
   heroActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
     marginTop: spacing.xxl,
   },
   heroButton: {
     flex: 1,
+    minWidth: 150,
   },
-  devicePreviewRow: {
+  featureGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
     marginTop: spacing.xl,
   },
-  useCaseCard: {
-    flex: 1,
-    minHeight: 154,
+  featureCard: {
+    width: '47.5%',
+    minHeight: 174,
     borderWidth: 1,
     borderRadius: radius.xl,
     padding: spacing.md,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 22,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 3,
   },
-  useCaseIcon: {
+  featureIcon: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.lg,
   },
-  useCaseTitle: {
+  featureTitle: {
     fontWeight: fontWeights.extraBold,
     marginTop: spacing.md,
   },
-  useCaseText: {
+  featureText: {
     fontWeight: fontWeights.medium,
     marginTop: spacing.xs,
   },
@@ -508,10 +554,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxl,
     marginTop: spacing.section,
     padding: spacing.lg,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.14,
-    shadowRadius: 30,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 4,
   },
   quickHeader: {
     flexDirection: 'row',

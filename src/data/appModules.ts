@@ -7,7 +7,8 @@ export type AppRoute =
   | '/asistente'
   | '/subtitulos'
   | '/configuracion'
-  | '/modo-simplificado';
+  | '/modo-simplificado'
+  | '/perfil';
 
 export type AppIconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -24,40 +25,40 @@ export type AppModule = {
 
 export const appModules: AppModule[] = [
   {
-    route: '/lectura',
-    label: 'Lectura inteligente',
-    shortLabel: 'Lectura',
-    description: 'Pega o revisa un texto, escúchalo en voz alta, controla velocidad, pausa y tamaño de letra.',
-    icon: 'volume-high-outline',
-    accent: 'primary',
-    status: 'Activo',
-    accessibilityHint: 'Abre lectura inteligente para escuchar textos y ajustar la lectura.',
-  },
-  {
-    route: '/asistente',
-    label: 'Asistente por voz',
-    shortLabel: 'Voz',
-    description: 'Dicta una acción, confirma lo entendido y recibe una respuesta visible y hablada.',
-    icon: 'mic-outline',
-    accent: 'secondary',
-    status: 'Activo',
-    accessibilityHint: 'Abre el asistente por voz para dictar comandos y recibir respuestas.',
-  },
-  {
     route: '/subtitulos',
     label: 'Subtítulos flotantes',
     shortLabel: 'Subtítulos',
-    description: 'Activa una ventana flotante que muestra subtítulos sobre videos, clases, música o audio cercano.',
+    description: 'Configura la burbuja de Android para mostrar subtítulos sobre otras aplicaciones.',
     icon: 'chatbox-ellipses-outline',
     accent: 'accent',
     status: 'Rápido',
-    accessibilityHint: 'Abre subtítulos flotantes para contenido con audio.',
+    accessibilityHint: 'Abre la configuración de subtítulos flotantes y burbuja del sistema.',
+  },
+  {
+    route: '/lectura',
+    label: 'Lectura por voz',
+    shortLabel: 'Lectura',
+    description: 'Escribe o pega texto para escucharlo con el motor de voz del dispositivo.',
+    icon: 'volume-high-outline',
+    accent: 'primary',
+    status: 'Activo',
+    accessibilityHint: 'Abre lectura por voz para escuchar textos y ajustar el ritmo.',
+  },
+  {
+    route: '/asistente',
+    label: 'Dictado y comandos',
+    shortLabel: 'Voz',
+    description: 'Inicia y detén el dictado cuando lo necesites, con respuestas visibles y controladas.',
+    icon: 'mic-outline',
+    accent: 'secondary',
+    status: 'Activo',
+    accessibilityHint: 'Abre dictado y comandos por voz.',
   },
   {
     route: '/configuracion',
     label: 'Ajustes accesibles',
     shortLabel: 'Ajustes',
-    description: 'Configura contraste, letra, lector de pantalla, velocidad de voz, perfiles y accesos rápidos.',
+    description: 'Adapta contraste, tamaño de letra, velocidad de lectura, subtítulos y burbuja.',
     icon: 'options-outline',
     accent: 'warning',
     status: 'Personalizable',
@@ -67,11 +68,21 @@ export const appModules: AppModule[] = [
     route: '/modo-simplificado',
     label: 'Modo simple',
     shortLabel: 'Simple',
-    description: 'Reduce distracciones y deja cuatro acciones grandes: escuchar, hablar, subtitular y pedir ayuda.',
+    description: 'Reduce opciones visibles y deja acciones grandes para lectura, voz y subtítulos.',
     icon: 'sparkles-outline',
     accent: 'success',
     status: 'Rápido',
     accessibilityHint: 'Abre el modo simple con acciones grandes y directas.',
+  },
+  {
+    route: '/perfil',
+    label: 'Perfil personal',
+    shortLabel: 'Perfil',
+    description: 'Configura tu nombre, correo, foto y preferencia principal de uso.',
+    icon: 'person-circle-outline',
+    accent: 'primary',
+    status: 'Personalizable',
+    accessibilityHint: 'Abre tu perfil de usuario en AccesIA.',
   },
 ];
 
@@ -87,7 +98,7 @@ export const bottomMenuModules: AppModule[] = [
     accessibilityHint: 'Vuelve a la pantalla de inicio.',
   },
   appModules[0],
-  appModules[1],
   appModules[2],
+  appModules[1],
   appModules[3],
 ];

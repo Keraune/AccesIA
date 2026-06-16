@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibilityPresetCard } from '@/components/AccessibilityPresetCard';
 import { AccessibilityToggle } from '@/components/AccessibilityToggle';
@@ -9,8 +9,9 @@ import { InfoCard } from '@/components/InfoCard';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
-import { FontScaleMode, ReadingSpeedMode, useAccessibility } from '@/context/AccessibilityContext';
+import { CaptionSizeMode, CaptionThemeMode, FontScaleMode, ReadingSpeedMode, useAccessibility } from '@/context/AccessibilityContext';
 import { accessibilityPresets } from '@/data/accessibilityPresets';
+import { openAndroidOverlaySettings, startAndroidFloatingAssistant, stopAndroidFloatingAssistant } from '@/services/systemOverlay';
 
 const fontOptions: { label: string; value: FontScaleMode; hint: string }[] = [
   { label: 'Normal', value: 'standard', hint: 'Usa el tamaño de letra estándar.' },
@@ -25,6 +26,18 @@ const speedOptions: { label: string; value: ReadingSpeedMode }[] = [
   { label: '1.5×', value: 1.5 },
 ];
 
+const captionSizeOptions: { label: string; value: CaptionSizeMode }[] = [
+  { label: 'Mediano', value: 'medium' },
+  { label: 'Grande', value: 'large' },
+  { label: 'Extra', value: 'extraLarge' },
+];
+
+const captionThemeOptions: { label: string; value: CaptionThemeMode }[] = [
+  { label: 'Oscuro', value: 'dark' },
+  { label: 'Azul', value: 'blue' },
+  { label: 'Claro', value: 'light' },
+];
+
 export default function SettingsScreen() {
   const {
     activeSettingsCount,
@@ -32,17 +45,53 @@ export default function SettingsScreen() {
     colors,
     fontMultiplier,
     lastChangeLabel,
+    liveCaptionSource,
     resetSettings,
     settings,
     setFontScale,
     setHighContrast,
     setQuickAccessEnabled,
     setReadingSpeed,
+    setCaptionSize,
+    setCaptionTheme,
     setScreenReaderSupportEnabled,
     setSimplifiedMode,
     setSubtitlesEnabled,
     setVoiceCommandsEnabled,
+    startLiveCaptions,
+    stopLiveCaptions,
+    captionFontMultiplier,
   } = useAccessibility();
+
+  async function startOverlayBubble() {
+    try {
+      const result = await startAndroidFloatingAssistant({
+        source: liveCaptionSource,
+        theme: settings.captionTheme,
+        scale: captionFontMultiplier,
+        minimize: true,
+      });
+
+      if (result.started) {
+        startLiveCaptions(liveCaptionSource);
+        return;
+      }
+
+      if (result.reason === 'permission-required') {
+        Alert.alert('Permiso requerido', 'Activa “Mostrar sobre otras apps” y vuelve a AccesIA para iniciar la burbuja.');
+        return;
+      }
+
+      Alert.alert('APK nativa requerida', 'La burbuja del sistema funciona en Android con una compilación nativa.');
+    } catch {
+      Alert.alert('No disponible', 'No se pudo abrir la burbuja del sistema. Revisa el permiso de superposición.');
+    }
+  }
+
+  async function stopOverlayBubble() {
+    stopLiveCaptions();
+    await stopAndroidFloatingAssistant();
+  }
 
   return (
     <ScreenContainer>
@@ -102,6 +151,45 @@ export default function SettingsScreen() {
         title="Último cambio aplicado"
         tone="primary"
       />
+
+      <View style={[styles.fontPanel, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
+        <View style={styles.panelHeader}>
+          <IconBadge icon="phone-portrait-outline" size="sm" tone="accent" />
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Burbuja flotante Android</Text>
+            <Text style={[styles.sectionDescription, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Permite que AccesIA se muestre sobre otras aplicaciones como una burbuja arrastrable.</Text>
+          </View>
+        </View>
+        <View style={styles.fontRow}>
+          <AccessibleButton
+            accessibilityHint="Abre la pantalla del sistema para permitir mostrar AccesIA sobre otras aplicaciones."
+            fullWidth={false}
+            icon="shield-checkmark-outline"
+            onPress={() => void openAndroidOverlaySettings()}
+            style={styles.fontButton}
+            title="Dar permiso"
+            variant="secondary"
+          />
+          <AccessibleButton
+            accessibilityHint="Inicia la burbuja flotante de AccesIA fuera de la aplicación."
+            fullWidth={false}
+            icon="albums-outline"
+            onPress={() => void startOverlayBubble()}
+            style={styles.fontButton}
+            title="Activar burbuja"
+            variant="accent"
+          />
+          <AccessibleButton
+            accessibilityHint="Detiene la burbuja flotante."
+            fullWidth={false}
+            icon="stop-circle-outline"
+            onPress={() => void stopOverlayBubble()}
+            style={styles.fontButton}
+            title="Detener"
+            variant="ghost"
+          />
+        </View>
+      </View>
 
       <View style={styles.section}>
         <Text
@@ -248,6 +336,79 @@ export default function SettingsScreen() {
           ))}
         </View>
       </View>
+
+
+      <View
+        style={[
+          styles.fontPanel,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        <View style={styles.panelHeader}>
+          <IconBadge icon="chatbox-ellipses-outline" size="sm" tone="primary" />
+          <View>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  color: colors.text,
+                  fontSize: fontSizes.xl * fontMultiplier,
+                  lineHeight: lineHeights.xl * fontMultiplier,
+                },
+              ]}
+            >
+              Subtítulos flotantes
+            </Text>
+            <Text
+              style={[
+                styles.sectionDescription,
+                {
+                  color: colors.textMuted,
+                  fontSize: fontSizes.sm * fontMultiplier,
+                  lineHeight: lineHeights.sm * fontMultiplier,
+                },
+              ]}
+            >
+              Ajusta tamaño y estilo del panel que aparece sobre el contenido con audio.
+            </Text>
+          </View>
+        </View>
+
+        <Text style={[styles.smallLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Tamaño</Text>
+        <View style={styles.fontRow}>
+          {captionSizeOptions.map((option) => (
+            <AccessibleButton
+              accessibilityHint={`Cambia el tamaño de subtítulos a ${option.label}.`}
+              fullWidth={false}
+              key={option.value}
+              onPress={() => setCaptionSize(option.value)}
+              style={styles.fontButton}
+              title={option.label}
+              variant={settings.captionSize === option.value ? 'accent' : 'secondary'}
+            />
+          ))}
+        </View>
+
+        <Text style={[styles.smallLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Diseño</Text>
+        <View style={styles.fontRow}>
+          {captionThemeOptions.map((option) => (
+            <AccessibleButton
+              accessibilityHint={`Cambia el diseño de subtítulos a ${option.label}.`}
+              fullWidth={false}
+              key={option.value}
+              onPress={() => setCaptionTheme(option.value)}
+              style={styles.fontButton}
+              title={option.label}
+              variant={settings.captionTheme === option.value ? 'accent' : 'secondary'}
+            />
+          ))}
+        </View>
+      </View>
+
 
       <View style={styles.section}>
         <Text
@@ -399,5 +560,10 @@ const styles = StyleSheet.create({
   fontButton: {
     flex: 1,
     minWidth: 100,
+  },
+  smallLabel: {
+    fontWeight: fontWeights.extraBold,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
   },
 });

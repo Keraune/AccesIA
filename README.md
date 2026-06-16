@@ -1,56 +1,49 @@
 # AccesIA
 
-AccesIA es una aplicación móvil de asistencia digital inclusiva. Su objetivo es ayudar al usuario a leer información, dictar acciones, comprender contenido con audio y adaptar la interfaz según sus necesidades visuales, auditivas, motoras o cognitivas.
+AccesIA es una aplicación móvil de asistencia accesible. Su objetivo principal es ayudar al usuario a leer contenido, dictar acciones, activar subtítulos visibles y adaptar la interfaz según sus necesidades visuales, auditivas, motoras o cognitivas.
 
-## Qué ofrece la aplicación
+## Funciones principales
 
-- Lectura accesible de textos con síntesis de voz, pausa, reanudación y control de velocidad.
-- Asistente por voz para dictar acciones y recibir confirmación visual y auditiva.
-- Subtítulos flotantes activables desde cualquier pantalla para contenido con audio, videos, clases, música o conversaciones cercanas.
-- Ajustes de accesibilidad: alto contraste, tamaño de letra, velocidad de lectura, modo simplificado, accesos rápidos y soporte para lectores de pantalla.
+- Lectura accesible de textos con síntesis de voz.
+- Asistente por voz para dictar acciones y recibir confirmación.
+- Subtítulos flotantes mediante burbuja de Android.
+- Burbuja flotante de Android para mostrar AccesIA sobre otras aplicaciones.
+- Configuración de letra, contraste, tamaño de subtítulos y tema visual.
+- Perfil local con nombre, correo, foto y preferencia de uso.
 - Modo simplificado con acciones grandes y directas.
 
-## Cómo se usa
+## Burbuja flotante Android
 
-AccesIA se usa principalmente como una aplicación abierta por el usuario cuando necesita apoyo. No depende de estar funcionando permanentemente en segundo plano. Para proteger privacidad y batería, las herramientas sensibles como micrófono y subtítulos se activan con una acción visible del usuario.
+La función tipo burbuja usa el permiso de Android **Mostrar sobre otras apps** (`SYSTEM_ALERT_WINDOW`). Al activarla, AccesIA inicia una burbuja arrastrable que puede permanecer visible al salir de la aplicación. Al tocarla se despliega un panel con subtítulos y controles rápidos.
 
-## Tecnología
+Ruta dentro de la app:
 
-- React Native
-- Expo
-- TypeScript
-- Expo Router
-- API de síntesis de voz disponible en web
-- Propiedades de accesibilidad nativas de React Native
+```text
+Configuración → Burbuja flotante Android → Dar permiso → Activar burbuja
+```
 
-## Ejecutar el proyecto
+También puede abrirse desde:
+
+```text
+Subtítulos → Activar burbuja
+Inicio → Abrir burbuja
+```
+
+## Importante sobre subtítulos de audio interno
+
+La pantalla y la burbuja flotante preparan el flujo de subtítulos. La captura real del audio interno del dispositivo requiere integración nativa adicional con MediaProjection y AudioPlaybackCapture. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear que su audio sea capturado. Esta versión deja la experiencia, permisos base y arquitectura listos para continuar con esa integración.
+
+## Ejecutar en web
 
 ```bash
 npm install
 npm run web
 ```
 
-También puede ejecutarse con Expo:
+## Generar APK para Android
 
 ```bash
-npx expo start
+eas build --platform android --profile preview
 ```
 
-## Estructura principal
-
-```text
-src/app
-Pantallas principales de la aplicación.
-
-src/components
-Componentes reutilizables: botones, tarjetas, encabezados, navegación e interruptores.
-
-src/context
-Estado global de accesibilidad.
-
-src/constants
-Colores, tipografía y reglas de diseño.
-
-src/services
-Servicios de voz y reconocimiento cuando el entorno lo permite.
-```
+Para instalar manualmente, descarga el APK generado por EAS e instálalo en el dispositivo Android.

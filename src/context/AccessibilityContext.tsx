@@ -18,6 +18,8 @@ import {
 export type FontScaleMode = 'standard' | 'large' | 'extraLarge';
 export type ReadingSpeedMode = 0.75 | 1 | 1.25 | 1.5;
 export type LiveCaptionSource = 'device' | 'video' | 'music' | 'classroom';
+export type CaptionSizeMode = 'medium' | 'large' | 'extraLarge';
+export type CaptionThemeMode = 'dark' | 'blue' | 'light';
 
 export type AccessibilitySettings = {
   highContrast: boolean;
@@ -28,12 +30,15 @@ export type AccessibilitySettings = {
   screenReaderSupportEnabled: boolean;
   fontScale: FontScaleMode;
   readingSpeed: ReadingSpeedMode;
+  captionSize: CaptionSizeMode;
+  captionTheme: CaptionThemeMode;
 };
 
 type AccessibilityContextValue = {
   settings: AccessibilitySettings;
   colors: AppColorScheme;
   fontMultiplier: number;
+  captionFontMultiplier: number;
   activeSettingsCount: number;
   lastChangeLabel: string;
   liveCaptionsActive: boolean;
@@ -46,6 +51,8 @@ type AccessibilityContextValue = {
   setScreenReaderSupportEnabled: (enabled: boolean) => void;
   setFontScale: (mode: FontScaleMode) => void;
   setReadingSpeed: (speed: ReadingSpeedMode) => void;
+  setCaptionSize: (size: CaptionSizeMode) => void;
+  setCaptionTheme: (theme: CaptionThemeMode) => void;
   setLiveCaptionSource: (source: LiveCaptionSource) => void;
   setLiveCaptionsActive: (enabled: boolean) => void;
   startLiveCaptions: (source?: LiveCaptionSource) => void;
@@ -65,6 +72,12 @@ const fontScaleMultipliers: Record<FontScaleMode, number> = {
   extraLarge: 1.3,
 };
 
+const captionScaleMultipliers: Record<CaptionSizeMode, number> = {
+  medium: 1,
+  large: 1.18,
+  extraLarge: 1.36,
+};
+
 const fontScaleOrder: FontScaleMode[] = ['standard', 'large', 'extraLarge'];
 
 export const defaultSettings: AccessibilitySettings = {
@@ -76,17 +89,21 @@ export const defaultSettings: AccessibilitySettings = {
   screenReaderSupportEnabled: true,
   fontScale: 'standard',
   readingSpeed: 1,
+  captionSize: 'large',
+  captionTheme: 'dark',
 };
 
 const settingLabels: Partial<Record<keyof AccessibilitySettings, string>> = {
   highContrast: 'alto contraste',
   simplifiedMode: 'modo simplificado',
-  subtitlesEnabled: 'subtítulos en pantalla',
+  subtitlesEnabled: 'subtítulos flotantes',
   voiceCommandsEnabled: 'comandos de voz',
   quickAccessEnabled: 'accesos rápidos',
   screenReaderSupportEnabled: 'compatibilidad con lectores de pantalla',
   fontScale: 'tamaño de letra',
   readingSpeed: 'velocidad de lectura',
+  captionSize: 'tamaño de subtítulos',
+  captionTheme: 'diseño de subtítulos',
 };
 
 type StorageGlobal = typeof globalThis & {
@@ -110,6 +127,14 @@ function isReadingSpeedMode(value: unknown): value is ReadingSpeedMode {
   return value === 0.75 || value === 1 || value === 1.25 || value === 1.5;
 }
 
+function isCaptionSizeMode(value: unknown): value is CaptionSizeMode {
+  return value === 'medium' || value === 'large' || value === 'extraLarge';
+}
+
+function isCaptionThemeMode(value: unknown): value is CaptionThemeMode {
+  return value === 'dark' || value === 'blue' || value === 'light';
+}
+
 function isLiveCaptionSource(value: unknown): value is LiveCaptionSource {
   return value === 'device' || value === 'video' || value === 'music' || value === 'classroom';
 }
@@ -124,6 +149,12 @@ function normalizeSettings(rawSettings: Partial<AccessibilitySettings>) {
     readingSpeed: isReadingSpeedMode(rawSettings.readingSpeed)
       ? rawSettings.readingSpeed
       : defaultSettings.readingSpeed,
+    captionSize: isCaptionSizeMode(rawSettings.captionSize)
+      ? rawSettings.captionSize
+      : defaultSettings.captionSize,
+    captionTheme: isCaptionThemeMode(rawSettings.captionTheme)
+      ? rawSettings.captionTheme
+      : defaultSettings.captionTheme,
   } satisfies AccessibilitySettings;
 }
 
@@ -157,9 +188,7 @@ function getChangeLabel(partialSettings: Partial<AccessibilitySettings>) {
   return firstKey ? `Se actualizó ${settingLabels[firstKey] ?? 'una preferencia'}.` : 'Preferencias actualizadas.';
 }
 
-const AccessibilityContext = createContext<AccessibilityContextValue | null>(
-  null,
-);
+const AccessibilityContext = createContext<AccessibilityContextValue | null>(null);
 
 export function AccessibilityProvider({ children }: PropsWithChildren) {
   const [settings, setSettings] = useState<AccessibilitySettings>(loadInitialSettings);
@@ -179,6 +208,10 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
     storage.setItem(liveCaptionStorageKey, liveCaptionSource);
   }, [liveCaptionSource]);
 
+  useEffect(() => {
+    setLiveCaptionsActiveState(settings.subtitlesEnabled);
+  }, [settings.subtitlesEnabled]);
+
   const updateSettings = useCallback(
     (partialSettings: Partial<AccessibilitySettings>, label?: string) => {
       setSettings((current) => normalizeSettings({
@@ -192,6 +225,7 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AccessibilityContextValue>(() => {
     const fontMultiplier = fontScaleMultipliers[settings.fontScale];
+    const captionFontMultiplier = captionScaleMultipliers[settings.captionSize];
     const currentFontIndex = fontScaleOrder.indexOf(settings.fontScale);
     const activeSettingsCount = [
       settings.highContrast,
@@ -229,6 +263,7 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       settings,
       colors: settings.highContrast ? highContrastColors : lightColors,
       fontMultiplier,
+      captionFontMultiplier,
       activeSettingsCount,
       lastChangeLabel,
       liveCaptionsActive,
@@ -244,6 +279,8 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       setScreenReaderSupportEnabled: (enabled) => updateSettings({ screenReaderSupportEnabled: enabled }),
       setFontScale: (mode) => updateSettings({ fontScale: mode }),
       setReadingSpeed: (speed) => updateSettings({ readingSpeed: speed }),
+      setCaptionSize: (captionSize) => updateSettings({ captionSize }),
+      setCaptionTheme: (captionTheme) => updateSettings({ captionTheme }),
       setLiveCaptionSource,
       setLiveCaptionsActive,
       startLiveCaptions,

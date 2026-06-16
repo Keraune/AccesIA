@@ -6,7 +6,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { appLayout, spacing } from '@/constants/layout';
@@ -24,38 +24,22 @@ export function ScreenContainer({
   scrollEnabled = true,
   showBottomNavigation = true,
 }: ScreenContainerProps) {
-  const { colors, settings } = useAccessibility();
+  const { colors } = useAccessibility();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = showBottomNavigation
+    ? appLayout.bottomNavigationHeight + Math.max(insets.bottom, spacing.xxl) + spacing.section
+    : Math.max(insets.bottom, spacing.section);
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}> 
-      <View pointerEvents="none" style={styles.ambientLayer}>
-        <View
-          style={[
-            styles.ambientOrb,
-            styles.orbPrimary,
-            {
-              backgroundColor: settings.highContrast ? colors.accentSoft : colors.secondarySoft,
-            },
-          ]}
-        />
-        <View
-          style={[
-            styles.ambientOrb,
-            styles.orbAccent,
-            {
-              backgroundColor: settings.highContrast ? colors.primarySoft : colors.accentSoft,
-            },
-          ]}
-        />
-      </View>
-
+    <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.background }]}> 
       <ScrollView
         bounces={false}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: showBottomNavigation ? appLayout.bottomNavigationHeight + spacing.xxxl : spacing.section },
+          { paddingBottom: bottomPadding },
           contentContainerStyle,
         ]}
+        keyboardShouldPersistTaps="handled"
         scrollEnabled={scrollEnabled}
         showsVerticalScrollIndicator={false}
       >
@@ -70,27 +54,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     overflow: 'hidden',
-  },
-  ambientLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  ambientOrb: {
-    position: 'absolute',
-    opacity: 0.72,
-  },
-  orbPrimary: {
-    top: -96,
-    right: -86,
-    width: 230,
-    height: 230,
-    borderRadius: 160,
-  },
-  orbAccent: {
-    top: 210,
-    left: -118,
-    width: 220,
-    height: 220,
-    borderRadius: 160,
   },
   content: {
     flexGrow: 1,

@@ -29,11 +29,11 @@ export type AppColorScheme = {
 };
 
 export const lightColors: AppColorScheme = {
-  background: '#F8FAFC',
-  backgroundAlt: '#EEF4FF',
+  background: '#FFFFFF',
+  backgroundAlt: '#F6F8FB',
   surface: '#FFFFFF',
-  surfaceElevated: '#F1F5F9',
-  surfaceGlass: 'rgba(255, 255, 255, 0.92)',
+  surfaceElevated: '#F4F7FA',
+  surfaceGlass: 'rgba(255, 255, 255, 0.96)',
   primary: '#2563EB',
   primarySoft: '#DBEAFE',
   primaryDeep: '#080F1F',

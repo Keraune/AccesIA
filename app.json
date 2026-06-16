@@ -8,7 +8,8 @@
     "scheme": "accesiaapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.keraune.accesiaapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,12 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.keraune.accesiaapp",
+      "permissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -34,11 +40,25 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AccesIA necesita acceder a tus fotos para cambiar la imagen de perfil.",
+          "cameraPermission": "AccesIA necesita acceder a la cámara para tomar una foto de perfil."
+        }
+      ],
+      "./plugins/withAccesiaAndroidOverlay"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f6fbdd68-784d-45a9-927a-2b0fd58d572d"
+      }
     }
   }
 }

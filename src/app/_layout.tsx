@@ -2,8 +2,8 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 
-import { LiveCaptionOverlay } from '@/components/LiveCaptionOverlay';
 import { AccessibilityProvider, useAccessibility } from '@/context/AccessibilityContext';
+import { ProfileProvider } from '@/context/ProfileContext';
 
 function AppStack() {
   const { colors, settings } = useAccessibility();
@@ -20,15 +20,16 @@ function AppStack() {
           },
         }}
       />
-      <LiveCaptionOverlay />
     </View>
   );
 }
 
 export default function RootLayout() {
   return (
-    <AccessibilityProvider>
-      <AppStack />
-    </AccessibilityProvider>
+    <ProfileProvider>
+      <AccessibilityProvider>
+        <AppStack />
+      </AccessibilityProvider>
+    </ProfileProvider>
   );
 }

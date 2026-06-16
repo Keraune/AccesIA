@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, spacing, touchTarget } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
@@ -11,6 +12,7 @@ export function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const { colors, fontMultiplier, settings } = useAccessibility();
+  const insets = useSafeAreaInsets();
 
   if (settings.simplifiedMode) {
     return null;
@@ -20,81 +22,94 @@ export function BottomNavigation() {
     <View
       accessibilityLabel="Menú principal inferior"
       style={[
-        styles.floatingShell,
+        styles.safeDock,
         {
-          backgroundColor: colors.surfaceGlass,
-          borderColor: colors.border,
-          shadowColor: colors.shadow,
+          paddingBottom: Math.max(insets.bottom, spacing.xl),
+          backgroundColor: colors.background,
         },
       ]}
     >
-      {bottomMenuModules.map((item) => {
-        const selected = pathname === item.route;
-        const iconName = selected
-          ? item.icon.replace('-outline', '')
-          : item.icon;
+      <View
+        style={[
+          styles.shell,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        {bottomMenuModules.map((item) => {
+          const selected = pathname === item.route;
+          const iconName = selected ? item.icon.replace('-outline', '') : item.icon;
 
-        return (
-          <Pressable
-            accessibilityHint={item.accessibilityHint}
-            accessibilityLabel={item.shortLabel}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            key={item.route}
-            onPress={() => router.push(item.route as never)}
-            style={({ pressed }) => [
-              styles.item,
-              selected ? styles.selectedItem : null,
-              {
-                backgroundColor: selected
-                  ? colors.primaryDeep
-                  : pressed
-                    ? colors.surfaceElevated
-                    : 'transparent',
-                opacity: pressed ? 0.82 : 1,
-              },
-            ]}
-          >
-            <Ionicons
-              color={selected ? colors.white : colors.textMuted}
-              name={iconName as typeof item.icon}
-              size={20}
-            />
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.label,
+          return (
+            <Pressable
+              accessibilityHint={item.accessibilityHint}
+              accessibilityLabel={item.shortLabel}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={item.route}
+              onPress={() => router.push(item.route as never)}
+              style={({ pressed }) => [
+                styles.item,
                 {
-                  color: selected ? colors.white : colors.textMuted,
-                  fontSize: fontSizes.xs * fontMultiplier,
-                  lineHeight: lineHeights.xs * fontMultiplier,
+                  backgroundColor: selected
+                    ? colors.primaryDeep
+                    : pressed
+                      ? colors.surfaceElevated
+                      : 'transparent',
+                  opacity: pressed ? 0.84 : 1,
                 },
               ]}
             >
-              {item.shortLabel}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Ionicons
+                color={selected ? colors.white : colors.textMuted}
+                name={iconName as typeof item.icon}
+                size={22}
+              />
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.label,
+                  {
+                    color: selected ? colors.white : colors.textMuted,
+                    fontSize: fontSizes.xs * fontMultiplier,
+                    lineHeight: lineHeights.xs * fontMultiplier,
+                  },
+                ]}
+              >
+                {item.shortLabel}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  floatingShell: {
+  safeDock: {
     position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    bottom: spacing.md,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    zIndex: 60,
+  },
+  shell: {
+    minHeight: 78,
     flexDirection: 'row',
     gap: spacing.xs,
     borderWidth: 1,
     borderRadius: radius.xxl,
     padding: spacing.sm,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.24,
-    shadowRadius: 32,
-    elevation: 14,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+    elevation: 12,
   },
   item: {
     minHeight: touchTarget.minimum,
@@ -105,12 +120,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xs,
-  },
-  selectedItem: {
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 4,
   },
   label: {
     fontWeight: fontWeights.bold,

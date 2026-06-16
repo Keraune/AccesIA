@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AccessibleButton } from '@/components/AccessibleButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -17,9 +17,6 @@ import {
   speakText,
   stopSpeech,
 } from '@/services/speech';
-
-const sampleText =
-  'Hoy revisaremos una actividad de accesibilidad. Puedes aumentar el tamaño de letra, activar alto contraste o escuchar este contenido para recibir la información de otra forma. AccesIA busca que cada usuario pueda leer, escuchar y adaptar la pantalla según sus necesidades.';
 
 const speedOptions: { label: string; value: ReadingSpeedMode; description: string }[] = [
   { label: '0.75×', value: 0.75, description: 'Pausada' },
@@ -42,6 +39,8 @@ export default function ReadingScreen() {
   } = useAccessibility();
   const [readingState, setReadingState] = useState<ReadingState>('idle');
   const [progress, setProgress] = useState(0);
+  const [textToRead, setTextToRead] = useState('');
+  const [message, setMessage] = useState('Escribe o pega un texto para escucharlo.');
 
   useEffect(() => () => stopSpeech(), []);
 
@@ -49,18 +48,26 @@ export default function ReadingScreen() {
     if (readingState !== 'reading') return undefined;
 
     const interval = setInterval(() => {
-      setProgress((current) => Math.min(current + 8, 100));
-    }, 600);
+      setProgress((current) => Math.min(current + 5, 96));
+    }, 700);
 
     return () => clearInterval(interval);
   }, [readingState]);
 
   const speechSupported = useMemo(() => isSpeechSynthesisAvailable(), []);
+  const readableText = textToRead.trim();
 
   function startReading() {
-    setProgress(0);
+    if (!readableText) {
+      setMessage('Agrega un texto antes de iniciar la lectura.');
+      setReadingState('idle');
+      return;
+    }
 
-    const started = speakText(sampleText, {
+    setProgress(0);
+    setMessage('Lectura iniciada. Puedes pausar o detener cuando lo necesites.');
+
+    const started = speakText(readableText, {
       rate: settings.readingSpeed,
       onStart: () => setReadingState('reading'),
       onPause: () => setReadingState('paused'),
@@ -68,61 +75,75 @@ export default function ReadingScreen() {
       onEnd: () => {
         setProgress(100);
         setReadingState('idle');
+        setMessage('Lectura finalizada.');
       },
-      onError: () => setReadingState('unsupported'),
+      onError: () => {
+        setReadingState('unsupported');
+        setMessage('No se pudo usar la síntesis de voz en este entorno.');
+      },
     });
 
     if (!started) {
       setReadingState('unsupported');
+      setMessage('La lectura por voz no está disponible en este entorno.');
     }
   }
 
   function pauseReading() {
     const paused = pauseSpeech();
     setReadingState(paused ? 'paused' : 'idle');
+    setMessage(paused ? 'Lectura pausada.' : 'No hay una lectura activa para pausar.');
   }
 
   function resumeReading() {
     const resumed = resumeSpeech();
     setReadingState(resumed ? 'reading' : 'idle');
+    setMessage(resumed ? 'Lectura reanudada.' : 'No hay una lectura pausada para reanudar.');
   }
 
   function stopReading() {
     stopSpeech();
     setProgress(0);
     setReadingState('idle');
+    setMessage('Lectura detenida.');
+  }
+
+  function clearText() {
+    stopReading();
+    setTextToRead('');
+    setMessage('Texto limpiado.');
   }
 
   const statusText = {
     idle: 'Listo para leer',
     reading: 'Lectura activa',
     paused: 'Lectura pausada',
-    unsupported: 'Síntesis no disponible',
+    unsupported: 'Voz no disponible',
   }[readingState];
 
   return (
     <ScreenContainer>
-      <AppHeader title="Lectura" subtitle="Texto claro, voz y control de ritmo" />
+      <AppHeader title="Lectura" subtitle="Texto, voz y control de ritmo" />
 
       <View
         style={[
           styles.featureHero,
           {
-            backgroundColor: colors.primaryDeep,
-            borderColor: settings.highContrast ? colors.border : 'rgba(255,255,255,0.16)',
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
             shadowColor: colors.shadow,
           },
         ]}
       >
         <View style={styles.featureHeroTop}>
-          <IconBadge icon="volume-high-outline" inverted size="lg" tone="accent" />
-          <View style={[styles.statusPill, { backgroundColor: readingState === 'reading' ? colors.successSoft : 'rgba(255,255,255,0.12)' }]}> 
-            <Ionicons color={readingState === 'reading' ? colors.success : colors.white} name={readingState === 'reading' ? 'radio-outline' : 'pause-circle-outline'} size={16} />
+          <IconBadge icon="volume-high-outline" size="lg" tone="primary" />
+          <View style={[styles.statusPill, { backgroundColor: readingState === 'reading' ? colors.successSoft : colors.surfaceElevated }]}> 
+            <Ionicons color={readingState === 'reading' ? colors.success : colors.textMuted} name={readingState === 'reading' ? 'radio-outline' : 'pause-circle-outline'} size={16} />
             <Text
               style={[
                 styles.statusPillText,
                 {
-                  color: readingState === 'reading' ? colors.success : colors.white,
+                  color: readingState === 'reading' ? colors.success : colors.textMuted,
                   fontSize: fontSizes.xs * fontMultiplier,
                   lineHeight: lineHeights.xs * fontMultiplier,
                 },
@@ -136,31 +157,31 @@ export default function ReadingScreen() {
           style={[
             styles.featureTitle,
             {
-              color: colors.white,
+              color: colors.text,
               fontSize: fontSizes.display * fontMultiplier,
               lineHeight: lineHeights.display * fontMultiplier,
             },
           ]}
         >
-          Escucha documentos con ritmo adaptable.
+          Escucha cualquier texto.
         </Text>
         <Text
           style={[
             styles.featureSubtitle,
             {
-              color: 'rgba(255,255,255,0.78)',
+              color: colors.textMuted,
               fontSize: fontSizes.md * fontMultiplier,
               lineHeight: lineHeights.md * fontMultiplier,
             },
           ]}
         >
-          Usa el motor de voz del dispositivo, con pausa, reanudación y control de velocidad para personas con baja visión o adultos mayores.
+          Pega contenido, controla velocidad, pausa, reanuda y detén la lectura con acciones claras.
         </Text>
       </View>
 
       <View
         accessible
-        accessibilityLabel={`Texto de ejemplo. ${sampleText}`}
+        accessibilityLabel="Editor de texto para lectura por voz."
         style={[
           styles.readingCard,
           {
@@ -172,7 +193,7 @@ export default function ReadingScreen() {
       >
         <View style={styles.cardHeader}>
           <IconBadge icon="document-text-outline" size="sm" tone="primary" />
-          <View>
+          <View style={styles.cardTitleBlock}>
             <Text
               style={[
                 styles.kicker,
@@ -183,7 +204,7 @@ export default function ReadingScreen() {
                 },
               ]}
             >
-              Documento accesible
+              Texto a leer
             </Text>
             <Text
               style={[
@@ -195,22 +216,30 @@ export default function ReadingScreen() {
                 },
               ]}
             >
-              Actividad de accesibilidad
+              Escribe o pega contenido
             </Text>
           </View>
         </View>
-        <Text
+        <TextInput
+          accessibilityHint="Campo para escribir o pegar el texto que AccesIA leerá en voz alta."
+          accessibilityLabel="Texto para lectura por voz"
+          multiline
+          onChangeText={setTextToRead}
+          placeholder="Pega aquí el texto que quieres escuchar."
+          placeholderTextColor={colors.textSubtle}
           style={[
-            styles.readingText,
+            styles.textInput,
             {
+              backgroundColor: colors.surfaceElevated,
+              borderColor: colors.border,
               color: colors.text,
-              fontSize: fontSizes.xl * fontMultiplier,
-              lineHeight: lineHeights.xxl * fontMultiplier,
+              fontSize: fontSizes.lg * fontMultiplier,
+              lineHeight: lineHeights.lg * fontMultiplier,
             },
           ]}
-        >
-          {sampleText}
-        </Text>
+          textAlignVertical="top"
+          value={textToRead}
+        />
       </View>
 
       <View
@@ -285,26 +314,24 @@ export default function ReadingScreen() {
 
       <InfoCard
         icon={speechSupported ? 'checkmark-circle-outline' : 'warning-outline'}
-        text={
-          speechSupported
-            ? 'La lectura por voz usa el motor de síntesis disponible en el dispositivo o navegador.'
-            : 'Este entorno no permite reproducir voz. El texto permanece visible para continuar la lectura manual.'
-        }
-        title={speechSupported ? 'Lectura por voz disponible' : 'Voz no disponible'}
+        text={speechSupported ? message : 'Este entorno no permite reproducir voz. El texto permanece visible para lectura manual.'}
+        title={speechSupported ? 'Estado de lectura' : 'Voz no disponible'}
         tone={speechSupported ? 'success' : 'warning'}
       />
 
       <View style={styles.actions}>
         <AccessibleButton
-          accessibilityHint="Inicia la lectura automática del texto mostrado."
+          accessibilityHint="Inicia la lectura automática del texto escrito."
+          disabled={!readableText}
           icon="play-outline"
           onPress={startReading}
-          title="Escuchar contenido"
+          title="Reproducir"
           variant="primary"
         />
         <View style={styles.buttonRow}>
           <AccessibleButton
             accessibilityHint="Pausa la lectura del contenido."
+            disabled={readingState !== 'reading'}
             fullWidth={false}
             icon="pause-outline"
             onPress={pauseReading}
@@ -314,6 +341,7 @@ export default function ReadingScreen() {
           />
           <AccessibleButton
             accessibilityHint="Reanuda la lectura pausada."
+            disabled={readingState !== 'paused'}
             fullWidth={false}
             icon="play-forward-outline"
             onPress={resumeReading}
@@ -322,13 +350,26 @@ export default function ReadingScreen() {
             variant="secondary"
           />
         </View>
-        <AccessibleButton
-          accessibilityHint="Detiene la lectura y reinicia el progreso."
-          icon="stop-outline"
-          onPress={stopReading}
-          title="Detener lectura"
-          variant="ghost"
-        />
+        <View style={styles.buttonRow}>
+          <AccessibleButton
+            accessibilityHint="Detiene la lectura y reinicia el progreso."
+            fullWidth={false}
+            icon="stop-outline"
+            onPress={stopReading}
+            style={styles.halfButton}
+            title="Detener"
+            variant="ghost"
+          />
+          <AccessibleButton
+            accessibilityHint="Limpia el texto escrito."
+            fullWidth={false}
+            icon="trash-outline"
+            onPress={clearText}
+            style={styles.halfButton}
+            title="Limpiar"
+            variant="ghost"
+          />
+        </View>
         <View style={styles.buttonRow}>
           <AccessibleButton
             accessibilityHint="Aumenta el tamaño del texto en toda la aplicación."
@@ -366,10 +407,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.xxl,
     padding: spacing.xxl,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.22,
-    shadowRadius: 34,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.14,
+    shadowRadius: 28,
+    elevation: 5,
   },
   featureHeroTop: {
     flexDirection: 'row',
@@ -387,6 +428,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontWeight: fontWeights.extraBold,
+    textTransform: 'uppercase',
   },
   featureTitle: {
     fontWeight: fontWeights.black,
@@ -402,15 +444,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.section,
     padding: spacing.xxl,
     shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 4,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     marginBottom: spacing.xl,
+  },
+  cardTitleBlock: {
+    flex: 1,
   },
   kicker: {
     fontWeight: fontWeights.extraBold,
@@ -420,7 +465,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontWeight: fontWeights.extraBold,
   },
-  readingText: {
+  textInput: {
+    minHeight: 180,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
     fontWeight: fontWeights.medium,
   },
   progressPanel: {

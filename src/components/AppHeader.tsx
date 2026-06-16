@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { radius, spacing, touchTarget } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
+import { useProfile } from '@/context/ProfileContext';
 
 type AppHeaderProps = {
   title?: string;
@@ -19,6 +20,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const { colors, fontMultiplier, settings } = useAccessibility();
+  const { initials, profile } = useProfile();
 
   return (
     <View
@@ -74,14 +76,14 @@ export function AppHeader({
         </View>
       </View>
 
-      {showSettings ? (
+      <View style={styles.actionsRow}>
         <Pressable
-          accessibilityHint="Abre la configuración de accesibilidad."
-          accessibilityLabel="Abrir configuración"
+          accessibilityHint="Abre tu perfil de AccesIA."
+          accessibilityLabel={`Abrir perfil de ${profile.name}`}
           accessibilityRole="button"
-          onPress={() => router.push('/configuracion' as never)}
+          onPress={() => router.push('/perfil' as never)}
           style={({ pressed }) => [
-            styles.settingsButton,
+            styles.profileButton,
             {
               backgroundColor: colors.surface,
               borderColor: colors.border,
@@ -90,9 +92,40 @@ export function AppHeader({
             },
           ]}
         >
-          <Ionicons color={colors.text} name="settings-outline" size={22} />
+          <Text
+            style={[
+              styles.initials,
+              {
+                color: colors.text,
+                fontSize: fontSizes.xs * fontMultiplier,
+                lineHeight: lineHeights.xs * fontMultiplier,
+              },
+            ]}
+          >
+            {initials}
+          </Text>
         </Pressable>
-      ) : null}
+
+        {showSettings ? (
+          <Pressable
+            accessibilityHint="Abre la configuración de accesibilidad."
+            accessibilityLabel="Abrir configuración"
+            accessibilityRole="button"
+            onPress={() => router.push('/configuracion' as never)}
+            style={({ pressed }) => [
+              styles.settingsButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: pressed ? 0.78 : 1,
+                shadowColor: colors.shadow,
+              },
+            ]}
+          >
+            <Ionicons color={colors.text} name="settings-outline" size={22} />
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -119,8 +152,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.lg,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.22,
-    shadowRadius: 22,
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
     elevation: 5,
   },
   textContainer: {
@@ -133,6 +166,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontWeight: fontWeights.medium,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   settingsButton: {
     width: touchTarget.comfortable,
     height: touchTarget.comfortable,
@@ -141,8 +178,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.lg,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
     elevation: 3,
+  },
+  profileButton: {
+    width: touchTarget.comfortable,
+    height: touchTarget.comfortable,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  initials: {
+    fontWeight: fontWeights.black,
   },
 });

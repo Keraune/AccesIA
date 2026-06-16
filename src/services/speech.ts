@@ -1,3 +1,6 @@
+import { Platform } from 'react-native';
+import * as ExpoSpeech from 'expo-speech';
+
 export type SpeechStatus = 'idle' | 'reading' | 'paused' | 'unsupported';
 
 export type SpeakOptions = {
@@ -37,19 +40,55 @@ type SpeechWindow = typeof globalThis & {
   SpeechSynthesisUtterance?: new (text: string) => SpeechUtteranceLike;
 };
 
+let nativeSpeechState: SpeechStatus = 'idle';
+let lastNativeText = '';
+let lastNativeOptions: SpeakOptions = {};
+
 function getSpeechWindow() {
   return globalThis as SpeechWindow;
 }
 
-export function isSpeechSynthesisAvailable() {
+function isWebSpeechAvailable() {
   const speechWindow = getSpeechWindow();
   return Boolean(speechWindow.speechSynthesis && speechWindow.SpeechSynthesisUtterance);
 }
 
+export function isSpeechSynthesisAvailable() {
+  if (Platform.OS !== 'web') return true;
+  return isWebSpeechAvailable();
+}
+
 export function speakText(text: string, options: SpeakOptions = {}) {
+  if (Platform.OS !== 'web') {
+    lastNativeText = text;
+    lastNativeOptions = options;
+    nativeSpeechState = 'reading';
+    options.onStart?.();
+
+    ExpoSpeech.stop();
+    ExpoSpeech.speak(text, {
+      language: 'es-PE',
+      pitch: options.pitch ?? 1,
+      rate: options.rate ?? 1,
+      onDone: () => {
+        nativeSpeechState = 'idle';
+        options.onEnd?.();
+      },
+      onStopped: () => {
+        nativeSpeechState = 'idle';
+        options.onEnd?.();
+      },
+      onError: () => {
+        nativeSpeechState = 'unsupported';
+        options.onError?.();
+      },
+    });
+    return true;
+  }
+
   const speechWindow = getSpeechWindow();
 
-  if (!isSpeechSynthesisAvailable() || !speechWindow.speechSynthesis || !speechWindow.SpeechSynthesisUtterance) {
+  if (!isWebSpeechAvailable() || !speechWindow.speechSynthesis || !speechWindow.SpeechSynthesisUtterance) {
     options.onError?.();
     return false;
   }
@@ -72,6 +111,14 @@ export function speakText(text: string, options: SpeakOptions = {}) {
 }
 
 export function pauseSpeech() {
+  if (Platform.OS !== 'web') {
+    if (nativeSpeechState !== 'reading') return false;
+    ExpoSpeech.stop();
+    nativeSpeechState = 'paused';
+    lastNativeOptions.onPause?.();
+    return true;
+  }
+
   const speechWindow = getSpeechWindow();
   if (!speechWindow.speechSynthesis?.speaking) return false;
   speechWindow.speechSynthesis.pause();
@@ -79,6 +126,30 @@ export function pauseSpeech() {
 }
 
 export function resumeSpeech() {
+  if (Platform.OS !== 'web') {
+    if (nativeSpeechState !== 'paused' || !lastNativeText) return false;
+    nativeSpeechState = 'reading';
+    lastNativeOptions.onResume?.();
+    ExpoSpeech.speak(lastNativeText, {
+      language: 'es-PE',
+      pitch: lastNativeOptions.pitch ?? 1,
+      rate: lastNativeOptions.rate ?? 1,
+      onDone: () => {
+        nativeSpeechState = 'idle';
+        lastNativeOptions.onEnd?.();
+      },
+      onStopped: () => {
+        nativeSpeechState = 'idle';
+        lastNativeOptions.onEnd?.();
+      },
+      onError: () => {
+        nativeSpeechState = 'unsupported';
+        lastNativeOptions.onError?.();
+      },
+    });
+    return true;
+  }
+
   const speechWindow = getSpeechWindow();
   if (!speechWindow.speechSynthesis?.paused) return false;
   speechWindow.speechSynthesis.resume();
@@ -86,6 +157,12 @@ export function resumeSpeech() {
 }
 
 export function stopSpeech() {
+  if (Platform.OS !== 'web') {
+    ExpoSpeech.stop();
+    nativeSpeechState = 'idle';
+    return true;
+  }
+
   const speechWindow = getSpeechWindow();
   if (!speechWindow.speechSynthesis) return false;
   speechWindow.speechSynthesis.cancel();
@@ -93,6 +170,8 @@ export function stopSpeech() {
 }
 
 export function getSpeechStatus(): SpeechStatus {
+  if (Platform.OS !== 'web') return nativeSpeechState;
+
   const speechWindow = getSpeechWindow();
 
   if (!speechWindow.speechSynthesis) {

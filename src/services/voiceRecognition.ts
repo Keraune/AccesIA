@@ -1,7 +1,10 @@
+export type VoiceRecognitionStatus = 'recognized' | 'unavailable' | 'error' | 'stopped';
+
 export type VoiceRecognitionResult = {
   transcript: string;
   confidence: number;
-  source: 'browser' | 'guided';
+  source: 'browser' | 'device';
+  status: VoiceRecognitionStatus;
 };
 
 type SpeechRecognitionEventLike = {
@@ -20,6 +23,7 @@ type SpeechRecognitionErrorLike = {
 type SpeechRecognitionLike = {
   lang: string;
   interimResults: boolean;
+  continuous?: boolean;
   maxAlternatives: number;
   start: () => void;
   stop: () => void;
@@ -35,84 +39,100 @@ type RecognitionWindow = typeof globalThis & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
-const fallbackCommands = [
-  'AccesIA, aumenta el tamaño de letra y activa alto contraste.',
-  'AccesIA, abre subtítulos para la clase virtual.',
-  'AccesIA, quiero escuchar el documento actual.',
-];
+type TranscriptListener = (transcript: string, confidence: number) => void;
+
+let activeRecognition: SpeechRecognitionLike | null = null;
+let activeResolve: ((result: VoiceRecognitionResult) => void) | null = null;
+let activeTranscript = '';
+let activeConfidence = 0;
 
 function getRecognitionConstructor() {
   const recognitionWindow = globalThis as RecognitionWindow;
   return recognitionWindow.SpeechRecognition ?? recognitionWindow.webkitSpeechRecognition;
 }
 
+function clearActiveRecognition() {
+  activeRecognition = null;
+  activeResolve = null;
+  activeTranscript = '';
+  activeConfidence = 0;
+}
+
+function buildFinalResult(status: VoiceRecognitionStatus): VoiceRecognitionResult {
+  return {
+    confidence: activeConfidence,
+    source: 'browser',
+    status: activeTranscript ? 'recognized' : status,
+    transcript: activeTranscript,
+  };
+}
+
 export function isVoiceRecognitionAvailable() {
   return Boolean(getRecognitionConstructor());
 }
 
-export function listenForCommand(timeoutMs = 4200): Promise<VoiceRecognitionResult> {
+export function stopListeningForCommand() {
+  if (!activeRecognition) {
+    return false;
+  }
+
+  const recognition = activeRecognition;
+  const resolve = activeResolve;
+  const result = buildFinalResult('stopped');
+  clearActiveRecognition();
+  recognition.stop();
+  resolve?.(result);
+  return true;
+}
+
+export function listenForCommand(onTranscript?: TranscriptListener): Promise<VoiceRecognitionResult> {
   const Recognition = getRecognitionConstructor();
 
   if (!Recognition) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const index = Math.floor(Math.random() * fallbackCommands.length);
-        resolve({
-          confidence: 0.86,
-          source: 'guided',
-          transcript: fallbackCommands[index],
-        });
-      }, 950);
+    return Promise.resolve({
+      confidence: 0,
+      source: 'device',
+      status: 'unavailable',
+      transcript: '',
     });
   }
 
+  stopListeningForCommand();
+
   return new Promise((resolve) => {
     const recognition = new Recognition();
-    let resolved = false;
-    const timeout = setTimeout(() => {
-      if (resolved) return;
-      resolved = true;
-      recognition.stop();
-      resolve({
-        confidence: 0.82,
-        source: 'guided',
-        transcript: fallbackCommands[0],
-      });
-    }, timeoutMs);
+    activeRecognition = recognition;
+    activeResolve = resolve;
+    activeTranscript = '';
+    activeConfidence = 0;
+
+    function resolveOnce(status: VoiceRecognitionStatus) {
+      if (activeRecognition !== recognition) return;
+      const result = buildFinalResult(status);
+      clearActiveRecognition();
+      resolve(result);
+    }
 
     recognition.lang = 'es-PE';
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+    recognition.continuous = true;
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      const bestResult = event.results[0]?.[0];
-      resolve({
-        confidence: bestResult?.confidence ?? 0.9,
-        source: 'browser',
-        transcript: bestResult?.transcript ?? fallbackCommands[0],
-      });
+      const latestIndex = Math.max(0, event.results.length - 1);
+      const bestResult = event.results[latestIndex]?.[0];
+      const nextTranscript = bestResult?.transcript?.trim() ?? '';
+
+      if (!nextTranscript) return;
+
+      activeTranscript = nextTranscript;
+      activeConfidence = bestResult?.confidence ?? activeConfidence;
+      onTranscript?.(activeTranscript, activeConfidence);
     };
     recognition.onerror = () => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      resolve({
-        confidence: 0.86,
-        source: 'guided',
-        transcript: fallbackCommands[1],
-      });
+      resolveOnce('error');
     };
     recognition.onend = () => {
-      if (resolved) return;
-      resolved = true;
-      clearTimeout(timeout);
-      resolve({
-        confidence: 0.84,
-        source: 'guided',
-        transcript: fallbackCommands[2],
-      });
+      resolveOnce(activeTranscript ? 'recognized' : 'stopped');
     };
     recognition.start();
   });
