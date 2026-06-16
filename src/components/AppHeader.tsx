@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { radius, spacing, touchTarget } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
@@ -13,13 +13,15 @@ type AppHeaderProps = {
   showSettings?: boolean;
 };
 
+const appIcon = require('../../assets/images/icon.png');
+
 export function AppHeader({
   title = 'AccesIA',
   subtitle = 'Asistencia digital inclusiva',
   showSettings = true,
 }: AppHeaderProps) {
   const router = useRouter();
-  const { colors, fontMultiplier, settings } = useAccessibility();
+  const { colors, fontMultiplier } = useAccessibility();
   const { initials, profile } = useProfile();
 
   return (
@@ -35,17 +37,13 @@ export function AppHeader({
           style={[
             styles.brandMark,
             {
-              backgroundColor: settings.highContrast ? colors.accent : colors.primaryDeep,
-              borderColor: settings.highContrast ? colors.border : 'rgba(255,255,255,0.22)',
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
               shadowColor: colors.shadow,
             },
           ]}
         >
-          <Ionicons
-            color={settings.highContrast ? colors.background : colors.white}
-            name="accessibility-outline"
-            size={28}
-          />
+          <Image source={appIcon} style={styles.brandImage} />
         </View>
 
         <View style={styles.textContainer}>
@@ -151,10 +149,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderRadius: radius.lg,
+    padding: 3,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.18,
     shadowRadius: 18,
     elevation: 5,
+  },
+  brandImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.md,
   },
   textContainer: {
     flex: 1,

@@ -3,104 +3,113 @@ const path = require('path');
 const {
   AndroidConfig,
   withAndroidManifest,
+  withAppBuildGradle,
   withDangerousMod,
   withMainApplication,
-} = require('@expo/config-plugins');
+} = require('expo/config-plugins');
 
-const ANDROID_PACKAGE = 'com.keraune.accesiaapp';
-const SOURCE_FILES = [
-  'AccesiaOverlayModule.java',
-  'AccesiaOverlayPackage.java',
-  'AccesiaOverlayService.java',
-];
+const SERVICE_NAME = '.AccesiaOverlayService';
+const PACKAGE_NAME = 'AccesiaOverlayPackage';
 
-function addPermission(manifest, permissionName) {
-  manifest['uses-permission'] = manifest['uses-permission'] || [];
-  const alreadyExists = manifest['uses-permission'].some(
-    (permission) => permission?.$?.['android:name'] === permissionName,
+function ensureArray(value) {
+  if (Array.isArray(value)) return value;
+  if (value == null) return [];
+  return [value];
+}
+
+function addOverlayService(manifest) {
+  const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
+  application.service = ensureArray(application.service);
+
+  const exists = application.service.some((service) => service.$['android:name'] === SERVICE_NAME);
+  if (!exists) {
+    application.service.push({
+      $: {
+        'android:name': SERVICE_NAME,
+        'android:exported': 'false',
+      },
+    });
+  }
+
+  return manifest;
+}
+
+function addUsesPermission(manifest, permissionName) {
+  manifest.manifest['uses-permission'] = ensureArray(manifest.manifest['uses-permission']);
+  const exists = manifest.manifest['uses-permission'].some(
+    (permission) => permission.$['android:name'] === permissionName,
   );
 
-  if (!alreadyExists) {
-    manifest['uses-permission'].push({
+  if (!exists) {
+    manifest.manifest['uses-permission'].push({
       $: {
         'android:name': permissionName,
       },
     });
   }
-}
 
-function addOverlayService(manifest) {
-  const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
-  application.service = application.service || [];
-
-  const alreadyExists = application.service.some(
-    (service) => service?.$?.['android:name'] === '.AccesiaOverlayService',
-  );
-
-  if (!alreadyExists) {
-    application.service.push({
-      $: {
-        'android:name': '.AccesiaOverlayService',
-        'android:exported': 'false',
-        'android:stopWithTask': 'false',
-      },
-    });
-  }
-}
-
-function copyNativeSources(projectRoot) {
-  const javaDir = path.join(
-    projectRoot,
-    'android',
-    'app',
-    'src',
-    'main',
-    'java',
-    ...ANDROID_PACKAGE.split('.'),
-  );
-
-  fs.mkdirSync(javaDir, { recursive: true });
-
-  for (const fileName of SOURCE_FILES) {
-    fs.copyFileSync(
-      path.join(projectRoot, 'native', 'android', fileName),
-      path.join(javaDir, fileName),
-    );
-  }
+  return manifest;
 }
 
 function addPackageToMainApplication(contents) {
-  if (contents.includes('AccesiaOverlayPackage()')) {
+  if (contents.includes(`${PACKAGE_NAME}()`)) {
     return contents;
   }
 
-  return contents.replace(
-    /return packages/g,
-    'packages.add(AccesiaOverlayPackage())\n            return packages',
-  );
+  if (contents.includes('PackageList(this).packages.apply {')) {
+    return contents.replace(
+      /PackageList\(this\)\.packages\.apply \{([\s\S]*?)\n\s*\}/m,
+      (match, body) => `PackageList(this).packages.apply {${body}\n          add(${PACKAGE_NAME}())\n        }`,
+    );
+  }
+
+  if (contents.includes('PackageList(this).packages')) {
+    return contents.replace(
+      /PackageList\(this\)\.packages/m,
+      `PackageList(this).packages.apply {\n          add(${PACKAGE_NAME}())\n        }`,
+    );
+  }
+
+  return contents;
 }
 
 module.exports = function withAccesiaAndroidOverlay(config) {
-  config = withAndroidManifest(config, (config) => {
-    const manifest = config.modResults.manifest;
-
-    addPermission(manifest, 'android.permission.SYSTEM_ALERT_WINDOW');
-    addPermission(manifest, 'android.permission.RECORD_AUDIO');
-    addOverlayService(manifest);
-
-    return config;
+  config = withAndroidManifest(config, (configMod) => {
+    let manifest = configMod.modResults;
+    manifest = addUsesPermission(manifest, 'android.permission.SYSTEM_ALERT_WINDOW');
+    manifest = addUsesPermission(manifest, 'android.permission.RECORD_AUDIO');
+    manifest = addOverlayService(manifest);
+    configMod.modResults = manifest;
+    return configMod;
   });
 
-  config = withMainApplication(config, (config) => {
-    config.modResults.contents = addPackageToMainApplication(config.modResults.contents);
-    return config;
+  config = withMainApplication(config, (configMod) => {
+    configMod.modResults.contents = addPackageToMainApplication(configMod.modResults.contents);
+    return configMod;
   });
+
+  config = withAppBuildGradle(config, (configMod) => configMod);
 
   config = withDangerousMod(config, [
     'android',
-    async (config) => {
-      copyNativeSources(config.modRequest.projectRoot);
-      return config;
+    async (configMod) => {
+      const packageName = config.android?.package ?? 'com.keraune.accesiaapp';
+      const targetDir = path.join(
+        configMod.modRequest.platformProjectRoot,
+        'app',
+        'src',
+        'main',
+        'java',
+        ...packageName.split('.'),
+      );
+      const sourceDir = path.join(configMod.modRequest.projectRoot, 'native', 'android');
+
+      fs.mkdirSync(targetDir, { recursive: true });
+      for (const fileName of ['AccesiaOverlayModule.java', 'AccesiaOverlayPackage.java', 'AccesiaOverlayService.java']) {
+        fs.copyFileSync(path.join(sourceDir, fileName), path.join(targetDir, fileName));
+      }
+
+      return configMod;
     },
   ]);
 

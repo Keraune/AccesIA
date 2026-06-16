@@ -19,7 +19,12 @@ export type FontScaleMode = 'standard' | 'large' | 'extraLarge';
 export type ReadingSpeedMode = 0.75 | 1 | 1.25 | 1.5;
 export type LiveCaptionSource = 'device' | 'video' | 'music' | 'classroom';
 export type CaptionSizeMode = 'medium' | 'large' | 'extraLarge';
-export type CaptionThemeMode = 'dark' | 'blue' | 'light';
+export type CaptionThemeMode = 'dark' | 'light' | 'highContrast' | 'compact';
+export type CaptionPositionMode = 'top' | 'center' | 'bottom';
+export type CaptionLanguageMode = 'es-PE' | 'es-ES' | 'en-US' | 'auto';
+export type LiveCaptionStatus = 'inactive' | 'waitingPermission' | 'listening' | 'captioning' | 'paused' | 'permissionError';
+export type OverlayBubbleSize = 'compact' | 'standard' | 'large';
+export type OverlayBubblePosition = 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
 
 export type AccessibilitySettings = {
   highContrast: boolean;
@@ -32,6 +37,10 @@ export type AccessibilitySettings = {
   readingSpeed: ReadingSpeedMode;
   captionSize: CaptionSizeMode;
   captionTheme: CaptionThemeMode;
+  captionPosition: CaptionPositionMode;
+  captionLanguage: CaptionLanguageMode;
+  bubbleSize: OverlayBubbleSize;
+  bubblePosition: OverlayBubblePosition;
 };
 
 type AccessibilityContextValue = {
@@ -43,6 +52,7 @@ type AccessibilityContextValue = {
   lastChangeLabel: string;
   liveCaptionsActive: boolean;
   liveCaptionSource: LiveCaptionSource;
+  liveCaptionStatus: LiveCaptionStatus;
   setHighContrast: (enabled: boolean) => void;
   setSimplifiedMode: (enabled: boolean) => void;
   setSubtitlesEnabled: (enabled: boolean) => void;
@@ -53,6 +63,11 @@ type AccessibilityContextValue = {
   setReadingSpeed: (speed: ReadingSpeedMode) => void;
   setCaptionSize: (size: CaptionSizeMode) => void;
   setCaptionTheme: (theme: CaptionThemeMode) => void;
+  setCaptionPosition: (position: CaptionPositionMode) => void;
+  setCaptionLanguage: (language: CaptionLanguageMode) => void;
+  setLiveCaptionStatus: (status: LiveCaptionStatus) => void;
+  setBubbleSize: (size: OverlayBubbleSize) => void;
+  setBubblePosition: (position: OverlayBubblePosition) => void;
   setLiveCaptionSource: (source: LiveCaptionSource) => void;
   setLiveCaptionsActive: (enabled: boolean) => void;
   startLiveCaptions: (source?: LiveCaptionSource) => void;
@@ -91,6 +106,10 @@ export const defaultSettings: AccessibilitySettings = {
   readingSpeed: 1,
   captionSize: 'large',
   captionTheme: 'dark',
+  captionPosition: 'bottom',
+  captionLanguage: 'es-PE',
+  bubbleSize: 'standard',
+  bubblePosition: 'topRight',
 };
 
 const settingLabels: Partial<Record<keyof AccessibilitySettings, string>> = {
@@ -104,6 +123,10 @@ const settingLabels: Partial<Record<keyof AccessibilitySettings, string>> = {
   readingSpeed: 'velocidad de lectura',
   captionSize: 'tamaño de subtítulos',
   captionTheme: 'diseño de subtítulos',
+  captionPosition: 'posición de subtítulos',
+  captionLanguage: 'idioma de subtítulos',
+  bubbleSize: 'tamaño de burbuja',
+  bubblePosition: 'posición inicial de la burbuja',
 };
 
 type StorageGlobal = typeof globalThis & {
@@ -132,7 +155,23 @@ function isCaptionSizeMode(value: unknown): value is CaptionSizeMode {
 }
 
 function isCaptionThemeMode(value: unknown): value is CaptionThemeMode {
-  return value === 'dark' || value === 'blue' || value === 'light';
+  return value === 'dark' || value === 'light' || value === 'highContrast' || value === 'compact';
+}
+
+function isCaptionPositionMode(value: unknown): value is CaptionPositionMode {
+  return value === 'top' || value === 'center' || value === 'bottom';
+}
+
+function isCaptionLanguageMode(value: unknown): value is CaptionLanguageMode {
+  return value === 'es-PE' || value === 'es-ES' || value === 'en-US' || value === 'auto';
+}
+
+function isOverlayBubbleSize(value: unknown): value is OverlayBubbleSize {
+  return value === 'compact' || value === 'standard' || value === 'large';
+}
+
+function isOverlayBubblePosition(value: unknown): value is OverlayBubblePosition {
+  return value === 'topLeft' || value === 'topRight' || value === 'bottomLeft' || value === 'bottomRight';
 }
 
 function isLiveCaptionSource(value: unknown): value is LiveCaptionSource {
@@ -155,6 +194,18 @@ function normalizeSettings(rawSettings: Partial<AccessibilitySettings>) {
     captionTheme: isCaptionThemeMode(rawSettings.captionTheme)
       ? rawSettings.captionTheme
       : defaultSettings.captionTheme,
+    captionPosition: isCaptionPositionMode(rawSettings.captionPosition)
+      ? rawSettings.captionPosition
+      : defaultSettings.captionPosition,
+    captionLanguage: isCaptionLanguageMode(rawSettings.captionLanguage)
+      ? rawSettings.captionLanguage
+      : defaultSettings.captionLanguage,
+    bubbleSize: isOverlayBubbleSize(rawSettings.bubbleSize)
+      ? rawSettings.bubbleSize
+      : defaultSettings.bubbleSize,
+    bubblePosition: isOverlayBubblePosition(rawSettings.bubblePosition)
+      ? rawSettings.bubblePosition
+      : defaultSettings.bubblePosition,
   } satisfies AccessibilitySettings;
 }
 
@@ -194,6 +245,7 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
   const [settings, setSettings] = useState<AccessibilitySettings>(loadInitialSettings);
   const [lastChangeLabel, setLastChangeLabel] = useState('AccesIA está lista para ayudarte.');
   const [liveCaptionsActive, setLiveCaptionsActiveState] = useState(false);
+  const [liveCaptionStatus, setLiveCaptionStatusState] = useState<LiveCaptionStatus>('inactive');
   const [liveCaptionSource, setLiveCaptionSourceState] = useState<LiveCaptionSource>(loadInitialCaptionSource);
 
   useEffect(() => {
@@ -243,7 +295,11 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
 
     const setLiveCaptionsActive = (enabled: boolean) => {
       setLiveCaptionsActiveState(enabled);
-      updateSettings({ subtitlesEnabled: enabled }, enabled ? 'Subtítulos flotantes activados.' : 'Subtítulos flotantes desactivados.');
+      setLiveCaptionStatusState(enabled ? 'listening' : 'inactive');
+      updateSettings(
+        { subtitlesEnabled: enabled },
+        enabled ? 'Subtítulos flotantes activados.' : 'Subtítulos flotantes desactivados.',
+      );
     };
 
     const startLiveCaptions = (source?: LiveCaptionSource) => {
@@ -251,11 +307,13 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
         setLiveCaptionSourceState(source);
       }
       setLiveCaptionsActiveState(true);
+      setLiveCaptionStatusState('listening');
       updateSettings({ subtitlesEnabled: true }, 'Subtítulos flotantes activados.');
     };
 
     const stopLiveCaptions = () => {
       setLiveCaptionsActiveState(false);
+      setLiveCaptionStatusState('inactive');
       updateSettings({ subtitlesEnabled: false }, 'Subtítulos flotantes detenidos.');
     };
 
@@ -268,10 +326,12 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       lastChangeLabel,
       liveCaptionsActive,
       liveCaptionSource,
+      liveCaptionStatus,
       setHighContrast: (enabled) => updateSettings({ highContrast: enabled }),
       setSimplifiedMode: (enabled) => updateSettings({ simplifiedMode: enabled }),
       setSubtitlesEnabled: (enabled) => {
         setLiveCaptionsActiveState(enabled);
+        setLiveCaptionStatusState(enabled ? 'listening' : 'inactive');
         updateSettings({ subtitlesEnabled: enabled });
       },
       setVoiceCommandsEnabled: (enabled) => updateSettings({ voiceCommandsEnabled: enabled }),
@@ -281,6 +341,22 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       setReadingSpeed: (speed) => updateSettings({ readingSpeed: speed }),
       setCaptionSize: (captionSize) => updateSettings({ captionSize }),
       setCaptionTheme: (captionTheme) => updateSettings({ captionTheme }),
+      setCaptionPosition: (captionPosition) => updateSettings({ captionPosition }),
+      setCaptionLanguage: (captionLanguage) => updateSettings({ captionLanguage }),
+      setLiveCaptionStatus: (status) => {
+        setLiveCaptionStatusState(status);
+        if (status === 'inactive') {
+          setLiveCaptionsActiveState(false);
+          updateSettings({ subtitlesEnabled: false }, 'Subtítulos flotantes detenidos.');
+          return;
+        }
+        setLiveCaptionsActiveState(status !== 'permissionError');
+        if (status !== 'permissionError') {
+          updateSettings({ subtitlesEnabled: true }, 'Estado de subtítulos actualizado.');
+        }
+      },
+      setBubbleSize: (bubbleSize) => updateSettings({ bubbleSize }, 'Se actualizó el tamaño de la burbuja.'),
+      setBubblePosition: (bubblePosition) => updateSettings({ bubblePosition }, 'Se actualizó la posición inicial de la burbuja.'),
       setLiveCaptionSource,
       setLiveCaptionsActive,
       startLiveCaptions,
@@ -297,11 +373,12 @@ export function AccessibilityProvider({ children }: PropsWithChildren) {
       resetSettings: () => {
         setSettings(defaultSettings);
         setLiveCaptionsActiveState(false);
+        setLiveCaptionStatusState('inactive');
         setLiveCaptionSourceState('device');
         setLastChangeLabel('Se restablecieron las preferencias accesibles.');
       },
     };
-  }, [lastChangeLabel, liveCaptionSource, liveCaptionsActive, settings, updateSettings]);
+  }, [lastChangeLabel, liveCaptionSource, liveCaptionStatus, liveCaptionsActive, settings, updateSettings]);
 
   return (
     <AccessibilityContext.Provider value={value}>

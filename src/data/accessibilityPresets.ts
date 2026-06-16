@@ -33,6 +33,8 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     tone: 'accent',
     settings: {
       subtitlesEnabled: true,
+      captionTheme: 'highContrast',
+      captionPosition: 'bottom',
       quickAccessEnabled: true,
       screenReaderSupportEnabled: true,
     },

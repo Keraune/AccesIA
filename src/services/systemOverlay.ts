@@ -1,19 +1,35 @@
 import { Linking, NativeModules, Platform } from 'react-native';
 
-import type { CaptionThemeMode, LiveCaptionSource } from '@/context/AccessibilityContext';
+import type {
+  CaptionLanguageMode,
+  CaptionPositionMode,
+  CaptionThemeMode,
+  LiveCaptionSource,
+  OverlayBubblePosition,
+  OverlayBubbleSize,
+} from '@/context/AccessibilityContext';
 
-type OverlayOptions = {
+export type OverlayOptions = {
   source: LiveCaptionSource;
   theme: CaptionThemeMode;
   scale: number;
+  captionPosition: CaptionPositionMode;
+  captionLanguage: CaptionLanguageMode;
+  bubbleSize: OverlayBubbleSize;
+  initialPosition: OverlayBubblePosition;
   minimize?: boolean;
 };
+
+type OverlayStartResult =
+  | { started: true; reason: null }
+  | { started: false; reason: 'native-module-missing' | 'permission-required' };
 
 type AccesiaOverlayNativeModule = {
   hasOverlayPermission: () => Promise<boolean>;
   openOverlaySettings: () => Promise<boolean>;
   startOverlay: (options: OverlayOptions) => Promise<boolean>;
   stopOverlay: () => Promise<boolean>;
+  isOverlayRunning: () => Promise<boolean>;
 };
 
 const NativeOverlay = NativeModules.AccesiaOverlay as AccesiaOverlayNativeModule | undefined;
@@ -38,15 +54,20 @@ export async function openAndroidOverlaySettings() {
   }
 }
 
-export async function startAndroidFloatingAssistant(options: OverlayOptions) {
+export async function isAndroidFloatingAssistantActive() {
+  if (!isAndroidSystemOverlayAvailable()) return false;
+  return NativeOverlay?.isOverlayRunning() ?? false;
+}
+
+export async function startAndroidFloatingAssistant(options: OverlayOptions): Promise<OverlayStartResult> {
   if (!isAndroidSystemOverlayAvailable()) {
-    return { started: false, reason: 'native-module-missing' as const };
+    return { started: false, reason: 'native-module-missing' };
   }
 
   const allowed = await hasAndroidOverlayPermission();
   if (!allowed) {
     await openAndroidOverlaySettings();
-    return { started: false, reason: 'permission-required' as const };
+    return { started: false, reason: 'permission-required' };
   }
 
   await NativeOverlay?.startOverlay(options);

@@ -57,6 +57,11 @@ public class AccesiaOverlayModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void isOverlayRunning(Promise promise) {
+    promise.resolve(AccesiaOverlayService.isRunning());
+  }
+
+  @ReactMethod
   public void startOverlay(ReadableMap options, Promise promise) {
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(reactContext)) {
@@ -69,6 +74,10 @@ public class AccesiaOverlayModule extends ReactContextBaseJavaModule {
       intent.putExtra(AccesiaOverlayService.EXTRA_SOURCE, getStringOption(options, "source", "device"));
       intent.putExtra(AccesiaOverlayService.EXTRA_THEME, getStringOption(options, "theme", "dark"));
       intent.putExtra(AccesiaOverlayService.EXTRA_SCALE, getDoubleOption(options, "scale", 1.18));
+      intent.putExtra(AccesiaOverlayService.EXTRA_CAPTION_POSITION, getStringOption(options, "captionPosition", "bottom"));
+      intent.putExtra(AccesiaOverlayService.EXTRA_CAPTION_LANGUAGE, getStringOption(options, "captionLanguage", "es-PE"));
+      intent.putExtra(AccesiaOverlayService.EXTRA_BUBBLE_SIZE, getStringOption(options, "bubbleSize", "standard"));
+      intent.putExtra(AccesiaOverlayService.EXTRA_POSITION, getStringOption(options, "initialPosition", "topRight"));
       boolean minimize = getBooleanOption(options, "minimize", false);
 
       reactContext.startService(intent);

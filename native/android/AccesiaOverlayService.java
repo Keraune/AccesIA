@@ -4,14 +4,18 @@ import android.app.Service;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -23,6 +27,12 @@ public class AccesiaOverlayService extends Service {
   public static final String EXTRA_SOURCE = "source";
   public static final String EXTRA_THEME = "theme";
   public static final String EXTRA_SCALE = "scale";
+  public static final String EXTRA_CAPTION_POSITION = "captionPosition";
+  public static final String EXTRA_CAPTION_LANGUAGE = "captionLanguage";
+  public static final String EXTRA_BUBBLE_SIZE = "bubbleSize";
+  public static final String EXTRA_POSITION = "position";
+
+  private static boolean running = false;
 
   private WindowManager windowManager;
   private View overlayView;
@@ -30,13 +40,26 @@ public class AccesiaOverlayService extends Service {
   private TextView captionText;
   private TextView sourceText;
   private TextView stateText;
+  private TextView pauseButton;
+  private TextView styleButton;
+  private TextView sizeButton;
+  private TextView subtitlesButton;
   private LinearLayout panelLayout;
+  private LinearLayout container;
   private String source = "device";
   private String theme = "dark";
   private double scale = 1.18;
+  private String captionPosition = "bottom";
+  private String captionLanguage = "es-PE";
+  private String bubbleSize = "standard";
+  private String initialPosition = "topRight";
   private boolean expanded = false;
   private boolean subtitlesActive = false;
   private boolean subtitlesPaused = false;
+
+  public static boolean isRunning() {
+    return running;
+  }
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
@@ -49,6 +72,10 @@ public class AccesiaOverlayService extends Service {
       source = intent.getStringExtra(EXTRA_SOURCE) != null ? intent.getStringExtra(EXTRA_SOURCE) : source;
       theme = intent.getStringExtra(EXTRA_THEME) != null ? intent.getStringExtra(EXTRA_THEME) : theme;
       scale = intent.getDoubleExtra(EXTRA_SCALE, scale);
+      captionPosition = intent.getStringExtra(EXTRA_CAPTION_POSITION) != null ? intent.getStringExtra(EXTRA_CAPTION_POSITION) : captionPosition;
+      captionLanguage = intent.getStringExtra(EXTRA_CAPTION_LANGUAGE) != null ? intent.getStringExtra(EXTRA_CAPTION_LANGUAGE) : captionLanguage;
+      bubbleSize = intent.getStringExtra(EXTRA_BUBBLE_SIZE) != null ? intent.getStringExtra(EXTRA_BUBBLE_SIZE) : bubbleSize;
+      initialPosition = intent.getStringExtra(EXTRA_POSITION) != null ? intent.getStringExtra(EXTRA_POSITION) : initialPosition;
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
@@ -57,11 +84,13 @@ public class AccesiaOverlayService extends Service {
     }
 
     showOverlay();
+    running = true;
     return START_STICKY;
   }
 
   @Override
   public void onDestroy() {
+    running = false;
     removeOverlay();
     super.onDestroy();
   }
@@ -75,7 +104,6 @@ public class AccesiaOverlayService extends Service {
   private void showOverlay() {
     removeOverlay();
     windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-
     overlayView = createOverlayView();
     overlayParams = new WindowManager.LayoutParams(
       WindowManager.LayoutParams.WRAP_CONTENT,
@@ -87,9 +115,7 @@ public class AccesiaOverlayService extends Service {
       PixelFormat.TRANSLUCENT
     );
     overlayParams.gravity = Gravity.TOP | Gravity.START;
-    overlayParams.x = dp(22);
-    overlayParams.y = dp(140);
-
+    applyInitialPosition();
     windowManager.addView(overlayView, overlayParams);
   }
 
@@ -104,20 +130,29 @@ public class AccesiaOverlayService extends Service {
     FrameLayout root = new FrameLayout(this);
     root.setPadding(dp(4), dp(4), dp(4), dp(4));
 
-    LinearLayout container = new LinearLayout(this);
+    container = new LinearLayout(this);
     container.setOrientation(LinearLayout.VERTICAL);
-    container.setGravity(Gravity.CENTER);
     container.setPadding(0, 0, 0, 0);
 
-    TextView bubble = new TextView(this);
-    bubble.setText("A");
-    bubble.setTextColor(Color.WHITE);
-    bubble.setTextSize(24);
-    bubble.setGravity(Gravity.CENTER);
-    bubble.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-    bubble.setBackground(createRoundedDrawable(Color.parseColor("#0F172A"), dp(28), Color.parseColor("#38BDF8"), dp(2)));
-    LinearLayout.LayoutParams bubbleParams = new LinearLayout.LayoutParams(dp(62), dp(62));
-    container.addView(bubble, bubbleParams);
+    FrameLayout bubbleFrame = new FrameLayout(this);
+    int bubbleDimension = getBubbleDimension();
+    bubbleFrame.setBackground(createRoundedDrawable(Color.parseColor("#FFFFFF"), dp(24), getBorderColor(), dp(1)));
+    bubbleFrame.setPadding(dp(4), dp(4), dp(4), dp(4));
+
+    ImageView bubbleIcon = new ImageView(this);
+    int appIconRes = getApplicationInfo().icon;
+    if (appIconRes != 0) {
+      bubbleIcon.setImageResource(appIconRes);
+    }
+    bubbleIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+    FrameLayout.LayoutParams bubbleIconParams = new FrameLayout.LayoutParams(
+      FrameLayout.LayoutParams.MATCH_PARENT,
+      FrameLayout.LayoutParams.MATCH_PARENT
+    );
+    bubbleFrame.addView(bubbleIcon, bubbleIconParams);
+
+    LinearLayout.LayoutParams bubbleParams = new LinearLayout.LayoutParams(bubbleDimension, bubbleDimension);
+    container.addView(bubbleFrame, bubbleParams);
 
     panelLayout = new LinearLayout(this);
     panelLayout.setOrientation(LinearLayout.VERTICAL);
@@ -126,34 +161,28 @@ public class AccesiaOverlayService extends Service {
     panelLayout.setBackground(createRoundedDrawable(getPanelColor(), dp(22), getBorderColor(), dp(1)));
     LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(dp(308), WindowManager.LayoutParams.WRAP_CONTENT);
     panelParams.topMargin = dp(10);
+    panelParams.gravity = isRightAligned() ? Gravity.END : Gravity.START;
 
-    stateText = createText("AccesIA", 13, true, getMutedTextColor());
+    stateText = createText("Burbuja lista", 13, true, getMutedTextColor());
     captionText = createText("Toca Subtítulos para iniciar.", (float) (17 * scale), true, getTextColor());
-    sourceText = createText(getSourceLabel(), 12, true, getMutedTextColor());
+    sourceText = createText(getSourceLabel() + " · " + getLanguageLabel(), 12, true, getMutedTextColor());
 
-    LinearLayout firstRow = new LinearLayout(this);
-    firstRow.setOrientation(LinearLayout.HORIZONTAL);
-    firstRow.setGravity(Gravity.CENTER);
-    firstRow.setPadding(0, dp(10), 0, 0);
+    LinearLayout firstRow = createRow(dp(10));
+    LinearLayout secondRow = createRow(dp(8));
 
-    LinearLayout secondRow = new LinearLayout(this);
-    secondRow.setOrientation(LinearLayout.HORIZONTAL);
-    secondRow.setGravity(Gravity.CENTER);
-    secondRow.setPadding(0, dp(8), 0, 0);
+    subtitlesButton = createActionButton("Subtítulos");
+    pauseButton = createActionButton("Pausar");
+    sizeButton = createActionButton("Tamaño");
+    styleButton = createActionButton("Estilo");
+    TextView closeButton = createActionButton("Cerrar");
 
-    TextView subtitles = createActionButton("Subtítulos");
-    TextView pause = createActionButton("Pausar");
-    TextView size = createActionButton("Tamaño");
-    TextView style = createActionButton("Estilo");
-    TextView close = createActionButton("Cerrar");
-
-    subtitles.setOnClickListener((view) -> {
+    subtitlesButton.setOnClickListener((view) -> {
       subtitlesActive = true;
       subtitlesPaused = false;
       updateCaptionState();
     });
 
-    pause.setOnClickListener((view) -> {
+    pauseButton.setOnClickListener((view) -> {
       if (!subtitlesActive) {
         subtitlesActive = true;
       }
@@ -161,24 +190,25 @@ public class AccesiaOverlayService extends Service {
       updateCaptionState();
     });
 
-    size.setOnClickListener((view) -> {
+    sizeButton.setOnClickListener((view) -> {
       scale = scale >= 1.45 ? 1.0 : scale + 0.15;
-      captionText.setTextSize((float) (17 * scale));
+      updateCaptionState();
       stateText.setText("Tamaño " + Math.round(scale * 100) + "%");
     });
 
-    style.setOnClickListener((view) -> {
+    styleButton.setOnClickListener((view) -> {
       cycleTheme();
       refreshPanelTheme();
+      updateCaptionState();
     });
 
-    close.setOnClickListener((view) -> stopSelf());
+    closeButton.setOnClickListener((view) -> stopSelf());
 
-    firstRow.addView(subtitles, new LinearLayout.LayoutParams(0, dp(42), 1));
-    firstRow.addView(pause, new LinearLayout.LayoutParams(0, dp(42), 1));
-    secondRow.addView(size, new LinearLayout.LayoutParams(0, dp(42), 1));
-    secondRow.addView(style, new LinearLayout.LayoutParams(0, dp(42), 1));
-    secondRow.addView(close, new LinearLayout.LayoutParams(0, dp(42), 1));
+    firstRow.addView(subtitlesButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    firstRow.addView(pauseButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    secondRow.addView(sizeButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    secondRow.addView(styleButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    secondRow.addView(closeButton, new LinearLayout.LayoutParams(0, dp(42), 1));
 
     panelLayout.addView(stateText);
     panelLayout.addView(captionText);
@@ -188,8 +218,17 @@ public class AccesiaOverlayService extends Service {
     container.addView(panelLayout, panelParams);
     root.addView(container);
 
-    bubble.setOnTouchListener(new DragTouchListener());
+    updateCaptionState();
+    bubbleFrame.setOnTouchListener(new DragTouchListener());
     return root;
+  }
+
+  private LinearLayout createRow(int topPadding) {
+    LinearLayout row = new LinearLayout(this);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER);
+    row.setPadding(0, topPadding, 0, 0);
+    return row;
   }
 
   private TextView createText(String text, float size, boolean bold, int color) {
@@ -200,7 +239,7 @@ public class AccesiaOverlayService extends Service {
     textView.setPadding(0, dp(3), 0, dp(3));
     textView.setLineSpacing(dp(2), 1.0f);
     if (bold) {
-      textView.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+      textView.setTypeface(Typeface.DEFAULT_BOLD);
     }
     return textView;
   }
@@ -211,7 +250,7 @@ public class AccesiaOverlayService extends Service {
     button.setTextSize(12);
     button.setGravity(Gravity.CENTER);
     button.setTextColor(getTextColor());
-    button.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+    button.setTypeface(Typeface.DEFAULT_BOLD);
     button.setBackground(createRoundedDrawable(getActionColor(), dp(12), getBorderColor(), dp(1)));
     button.setPadding(dp(6), 0, dp(6), 0);
     return button;
@@ -219,31 +258,47 @@ public class AccesiaOverlayService extends Service {
 
   private void toggleExpanded() {
     expanded = !expanded;
-    panelLayout.setVisibility(expanded ? View.VISIBLE : View.GONE);
+    if (panelLayout != null) {
+      panelLayout.setVisibility(expanded ? View.VISIBLE : View.GONE);
+    }
   }
 
   private void updateCaptionState() {
     if (captionText == null || stateText == null || sourceText == null) return;
 
+    captionText.setTextSize((float) (17 * scale));
+
     if (!subtitlesActive) {
       stateText.setText("Subtítulos inactivos");
       captionText.setText("Toca Subtítulos para iniciar.");
+      if (pauseButton != null) {
+        pauseButton.setText("Pausar");
+      }
     } else if (subtitlesPaused) {
       stateText.setText("Subtítulos pausados");
       captionText.setText("Pausado");
+      if (pauseButton != null) {
+        pauseButton.setText("Reanudar");
+      }
     } else {
       stateText.setText("Subtítulos activos");
       captionText.setText("Esperando audio…");
+      if (pauseButton != null) {
+        pauseButton.setText("Pausar");
+      }
     }
 
-    sourceText.setText(getSourceLabel());
+    sourceText.setText(getSourceLabel() + " · " + getLanguageLabel() + " · " + getCaptionPositionLabel());
+    refreshButtonStyles();
   }
 
   private void cycleTheme() {
     if ("dark".equals(theme)) {
-      theme = "blue";
-    } else if ("blue".equals(theme)) {
       theme = "light";
+    } else if ("light".equals(theme)) {
+      theme = "highContrast";
+    } else if ("highContrast".equals(theme)) {
+      theme = "compact";
     } else {
       theme = "dark";
     }
@@ -255,13 +310,33 @@ public class AccesiaOverlayService extends Service {
     captionText.setTextColor(getTextColor());
     sourceText.setTextColor(getMutedTextColor());
     stateText.setTextColor(getMutedTextColor());
-    stateText.setText("Estilo " + getThemeLabel());
+    refreshButtonStyles();
   }
 
-  private String getThemeLabel() {
-    if ("light".equals(theme)) return "claro";
-    if ("blue".equals(theme)) return "azul";
-    return "oscuro";
+  private void refreshButtonStyles() {
+    applyButtonStyle(subtitlesButton);
+    applyButtonStyle(pauseButton);
+    applyButtonStyle(sizeButton);
+    applyButtonStyle(styleButton);
+  }
+
+  private void applyButtonStyle(TextView button) {
+    if (button == null) return;
+    button.setTextColor(getTextColor());
+    button.setBackground(createRoundedDrawable(getActionColor(), dp(12), getBorderColor(), dp(1)));
+  }
+
+  private String getLanguageLabel() {
+    if ("es-ES".equals(captionLanguage)) return "Español España";
+    if ("en-US".equals(captionLanguage)) return "Inglés";
+    if ("auto".equals(captionLanguage)) return "Idioma automático";
+    return "Español Perú";
+  }
+
+  private String getCaptionPositionLabel() {
+    if ("top".equals(captionPosition)) return "Superior";
+    if ("center".equals(captionPosition)) return "Centro";
+    return "Inferior";
   }
 
   private String getSourceLabel() {
@@ -271,35 +346,79 @@ public class AccesiaOverlayService extends Service {
     return "Fuente: micrófono";
   }
 
+  private int getBubbleDimension() {
+    if ("compact".equals(bubbleSize)) return dp(56);
+    if ("large".equals(bubbleSize)) return dp(74);
+    return dp(64);
+  }
+
+  private void applyInitialPosition() {
+    DisplayMetrics metrics = getResources().getDisplayMetrics();
+    int margin = dp(22);
+    int bubbleDimension = getBubbleDimension();
+    int rightX = Math.max(margin, metrics.widthPixels - bubbleDimension - margin);
+    int bottomY = Math.max(dp(120), metrics.heightPixels - bubbleDimension - dp(220));
+
+    if ("topLeft".equals(initialPosition)) {
+      overlayParams.x = margin;
+      overlayParams.y = dp(140);
+      return;
+    }
+
+    if ("bottomLeft".equals(initialPosition)) {
+      overlayParams.x = margin;
+      overlayParams.y = bottomY;
+      return;
+    }
+
+    if ("bottomRight".equals(initialPosition)) {
+      overlayParams.x = rightX;
+      overlayParams.y = bottomY;
+      return;
+    }
+
+    overlayParams.x = rightX;
+    overlayParams.y = dp(140);
+  }
+
+  private boolean isRightAligned() {
+    return "topRight".equals(initialPosition) || "bottomRight".equals(initialPosition);
+  }
+
   private int getPanelColor() {
     if ("light".equals(theme)) return Color.WHITE;
-    if ("blue".equals(theme)) return Color.parseColor("#1D4ED8");
+    if ("highContrast".equals(theme)) return Color.BLACK;
+    if ("compact".equals(theme)) return Color.parseColor("#E60F172A");
     return Color.parseColor("#0F172A");
   }
 
   private int getActionColor() {
     if ("light".equals(theme)) return Color.parseColor("#EEF2FF");
-    if ("blue".equals(theme)) return Color.parseColor("#1E40AF");
+    if ("highContrast".equals(theme)) return Color.parseColor("#1F2937");
+    if ("compact".equals(theme)) return Color.parseColor("#334155");
     return Color.parseColor("#1E293B");
   }
 
   private int getTextColor() {
     if ("light".equals(theme)) return Color.parseColor("#0F172A");
+    if ("highContrast".equals(theme)) return Color.parseColor("#FDE047");
     return Color.WHITE;
   }
 
   private int getMutedTextColor() {
     if ("light".equals(theme)) return Color.parseColor("#475569");
+    if ("highContrast".equals(theme)) return Color.parseColor("#FDE68A");
     return Color.parseColor("#CBD5E1");
   }
 
   private int getBorderColor() {
     if ("light".equals(theme)) return Color.parseColor("#CBD5E1");
+    if ("highContrast".equals(theme)) return Color.parseColor("#FDE047");
     return Color.parseColor("#334155");
   }
 
-  private android.graphics.drawable.GradientDrawable createRoundedDrawable(int color, int radius, int strokeColor, int strokeWidth) {
-    android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+  private GradientDrawable createRoundedDrawable(int color, int radius, int strokeColor, int strokeWidth) {
+    GradientDrawable drawable = new GradientDrawable();
     drawable.setColor(color);
     drawable.setCornerRadius(radius);
     if (strokeWidth > 0) {
@@ -322,6 +441,10 @@ public class AccesiaOverlayService extends Service {
     return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
   }
 
+  private int clamp(int value, int min, int max) {
+    return Math.max(min, Math.min(value, max));
+  }
+
   private class DragTouchListener implements View.OnTouchListener {
     private int initialX;
     private int initialY;
@@ -331,6 +454,8 @@ public class AccesiaOverlayService extends Service {
 
     @Override
     public boolean onTouch(View view, MotionEvent event) {
+      if (overlayParams == null) return false;
+
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
           initialX = overlayParams.x;
@@ -345,8 +470,15 @@ public class AccesiaOverlayService extends Service {
           if (Math.abs(deltaX) > dp(4) || Math.abs(deltaY) > dp(4)) {
             moved = true;
           }
-          overlayParams.x = initialX + deltaX;
-          overlayParams.y = initialY + deltaY;
+
+          DisplayMetrics metrics = getResources().getDisplayMetrics();
+          int nextX = initialX + deltaX;
+          int nextY = initialY + deltaY;
+          int maxX = Math.max(dp(16), metrics.widthPixels - getBubbleDimension());
+          int maxY = Math.max(dp(80), metrics.heightPixels - dp(120));
+          overlayParams.x = clamp(nextX, dp(8), maxX);
+          overlayParams.y = clamp(nextY, dp(40), maxY);
+
           if (windowManager != null && overlayView != null) {
             windowManager.updateViewLayout(overlayView, overlayParams);
           }
@@ -354,6 +486,9 @@ public class AccesiaOverlayService extends Service {
         case MotionEvent.ACTION_UP:
           if (!moved) {
             toggleExpanded();
+            if (windowManager != null && overlayView != null) {
+              windowManager.updateViewLayout(overlayView, overlayParams);
+            }
           }
           return true;
         default:

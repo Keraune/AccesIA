@@ -34,8 +34,9 @@ const captionSizeOptions: { label: string; value: CaptionSizeMode }[] = [
 
 const captionThemeOptions: { label: string; value: CaptionThemeMode }[] = [
   { label: 'Oscuro', value: 'dark' },
-  { label: 'Azul', value: 'blue' },
   { label: 'Claro', value: 'light' },
+  { label: 'Alto contraste', value: 'highContrast' },
+  { label: 'Compacto', value: 'compact' },
 ];
 
 export default function SettingsScreen() {
@@ -69,6 +70,10 @@ export default function SettingsScreen() {
         source: liveCaptionSource,
         theme: settings.captionTheme,
         scale: captionFontMultiplier,
+        captionPosition: settings.captionPosition,
+        captionLanguage: settings.captionLanguage,
+        bubbleSize: settings.bubbleSize,
+        initialPosition: settings.bubblePosition,
         minimize: true,
       });
 

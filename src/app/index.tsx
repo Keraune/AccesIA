@@ -87,6 +87,10 @@ export default function HomeScreen() {
         source: liveCaptionSource,
         theme: settings.captionTheme,
         scale: captionFontMultiplier,
+        captionPosition: settings.captionPosition,
+        captionLanguage: settings.captionLanguage,
+        bubbleSize: settings.bubbleSize,
+        initialPosition: settings.bubblePosition,
         minimize: true,
       });
 
