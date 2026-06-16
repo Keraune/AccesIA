@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { AccessibleButton } from '@/components/AccessibleButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -11,17 +11,26 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
-import { findVoiceAction, getUnrecognizedResponse, voiceAssistants, VoiceAssistantMode } from '@/data/voiceActions';
-import { speakText } from '@/services/speech';
+import {
+  findVoiceAction,
+  getUnrecognizedResponse,
+  getVoiceAssistant,
+  voiceActions,
+  voiceAssistants,
+  VoiceAssistantMode,
+} from '@/data/voiceActions';
+import { speakText, stopSpeech } from '@/services/speech';
+import {
+  addVoiceCommandHistoryItem,
+  clearVoiceCommandHistory,
+  loadVoiceCommandHistory,
+  VoiceCommandHistoryItem,
+} from '@/services/voiceHistory';
 import { listenForCommand, isVoiceRecognitionAvailable, stopListeningForCommand } from '@/services/voiceRecognition';
 
 type VoiceState = 'idle' | 'listening' | 'answered' | 'unavailable' | 'error';
 
-type CommandHistoryItem = {
-  id: string;
-  transcript: string;
-  response: string;
-};
+type CommandSource = 'voice' | 'manual';
 
 export default function AssistantScreen() {
   const router = useRouter();
@@ -29,23 +38,121 @@ export default function AssistantScreen() {
     colors,
     fontMultiplier,
     settings,
+    setHighContrast,
+    setSimplifiedMode,
     setSubtitlesEnabled,
     setVoiceCommandsEnabled,
     increaseFontScale,
+    stopLiveCaptions,
   } = useAccessibility();
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState('');
-  const [response, setResponse] = useState('Elige un asistente y pulsa iniciar para dictar una acción.');
+  const [manualCommand, setManualCommand] = useState('');
+  const [response, setResponse] = useState(getVoiceAssistant('clear').stoppedText);
   const [confidence, setConfidence] = useState(0);
   const [assistantMode, setAssistantMode] = useState<VoiceAssistantMode>('clear');
-  const [history, setHistory] = useState<CommandHistoryItem[]>([]);
+  const [history, setHistory] = useState<VoiceCommandHistoryItem[]>([]);
+  const [historyReady, setHistoryReady] = useState(false);
+
+  const selectedAssistant = useMemo(() => getVoiceAssistant(assistantMode), [assistantMode]);
+  const voiceAvailable = isVoiceRecognitionAvailable();
+
+  useEffect(() => {
+    let mounted = true;
+    void loadVoiceCommandHistory().then((savedHistory) => {
+      if (!mounted) return;
+      setHistory(savedHistory);
+      setHistoryReady(true);
+    });
+
+    return () => {
+      mounted = false;
+      stopListeningForCommand();
+      stopSpeech();
+    };
+  }, []);
+
+  async function saveHistoryItem(item: VoiceCommandHistoryItem) {
+    const nextHistory = await addVoiceCommandHistoryItem(item);
+    setHistory(nextHistory);
+  }
+
+  function executeRecognizedAction(actionId: string) {
+    switch (actionId) {
+      case 'open-captions':
+        setSubtitlesEnabled(true);
+        router.push('/subtitulos' as never);
+        break;
+      case 'pause-captions':
+      case 'stop-captions':
+        stopLiveCaptions();
+        setSubtitlesEnabled(false);
+        break;
+      case 'increase-text':
+        increaseFontScale();
+        break;
+      case 'open-reading':
+        router.push('/lectura' as never);
+        break;
+      case 'open-settings':
+        router.push('/configuracion' as never);
+        break;
+      case 'enable-high-contrast':
+        setHighContrast(true);
+        break;
+      case 'open-simple-mode':
+        setSimplifiedMode(true);
+        router.push('/modo-simplificado' as never);
+        break;
+      default:
+        break;
+    }
+  }
+
+  async function processCommand(command: string, commandConfidence: number, source: CommandSource) {
+    const trimmedCommand = command.trim();
+
+    if (!trimmedCommand) {
+      setVoiceState('idle');
+      setResponse(selectedAssistant.emptyText);
+      return;
+    }
+
+    const action = findVoiceAction(trimmedCommand);
+    const nextResponse = action?.responses[assistantMode] ?? getUnrecognizedResponse(assistantMode);
+    const nextConfidence = source === 'manual' ? 100 : Math.round(commandConfidence * 100);
+
+    setVoiceState('answered');
+    setTranscript(trimmedCommand);
+    setConfidence(nextConfidence);
+    setResponse(nextResponse);
+    setVoiceCommandsEnabled(true);
+
+    await saveHistoryItem({
+      id: `${Date.now()}`,
+      transcript: trimmedCommand,
+      response: nextResponse,
+      actionId: action?.id,
+      actionLabel: action?.label,
+      assistantMode,
+      confidence: nextConfidence,
+      status: action ? 'recognized' : 'unrecognized',
+      createdAt: new Date().toISOString(),
+    });
+
+    if (action) {
+      executeRecognizedAction(action.id);
+    }
+  }
 
   async function handleStartListening() {
+    if (voiceState === 'listening') return;
+
     setVoiceCommandsEnabled(true);
     setVoiceState('listening');
     setTranscript('');
     setConfidence(0);
-    setResponse('Escuchando. Pulsa detener cuando termines.');
+    setResponse(selectedAssistant.listeningText);
 
     const result = await listenForCommand((partialTranscript, partialConfidence) => {
       setTranscript(partialTranscript);
@@ -54,63 +161,37 @@ export default function AssistantScreen() {
 
     if (result.status === 'unavailable') {
       setVoiceState('unavailable');
-      setResponse('El reconocimiento de voz no está disponible en este entorno. Usa una compilación nativa o un navegador compatible.');
+      setResponse(selectedAssistant.unavailableText);
       return;
     }
 
-    if (result.status === 'stopped') {
-      setVoiceState('idle');
-      setResponse('Escucha detenida por el usuario. Puedes iniciar otra vez cuando lo necesites.');
-      return;
-    }
-
-
-    if (result.status === 'error' || !result.transcript) {
+    if (result.status === 'error') {
       setVoiceState('error');
-      setResponse('No se pudo procesar el audio. Revisa el permiso del micrófono e inténtalo otra vez.');
+      setResponse(selectedAssistant.errorText);
       return;
     }
 
-    const action = findVoiceAction(result.transcript);
-    const nextResponse = action?.responses[assistantMode] ?? getUnrecognizedResponse(assistantMode);
-
-    setVoiceState('answered');
-    setTranscript(result.transcript);
-    setConfidence(Math.round(result.confidence * 100));
-    setResponse(nextResponse);
-    setHistory((current) => [
-      {
-        id: `${Date.now()}`,
-        transcript: result.transcript,
-        response: nextResponse,
-      },
-      ...current,
-    ].slice(0, 6));
-
-    if (action?.id === 'open-captions') {
-      setSubtitlesEnabled(true);
-      router.push('/subtitulos' as never);
+    if (result.status === 'stopped' && !result.transcript.trim()) {
+      setVoiceState('idle');
+      setResponse(selectedAssistant.stoppedText);
+      return;
     }
 
-    if (action?.id === 'increase-text') {
-      increaseFontScale();
-    }
-
-    if (action?.id === 'open-reading') {
-      router.push('/lectura' as never);
-    }
-
-    if (action?.id === 'open-settings') {
-      router.push('/configuracion' as never);
-    }
+    await processCommand(result.transcript, result.confidence, 'voice');
   }
 
   function handleStopListening() {
     const stopped = stopListeningForCommand();
     if (!stopped) {
       setVoiceState('idle');
-      setResponse('La escucha ya está detenida.');
+      setResponse(selectedAssistant.stoppedText);
     }
+  }
+
+  async function handleManualCommand() {
+    Keyboard.dismiss();
+    await processCommand(manualCommand, 1, 'manual');
+    setManualCommand('');
   }
 
   function playResponse() {
@@ -120,17 +201,27 @@ export default function AssistantScreen() {
     });
   }
 
+  async function clearHistory() {
+    await clearVoiceCommandHistory();
+    setHistory([]);
+  }
+
   const statusText = {
     idle: 'En espera',
     listening: 'Escuchando',
     answered: 'Respuesta lista',
-    unavailable: 'No disponible',
-    error: 'Revisar permiso',
+    unavailable: 'Voz no disponible',
+    error: 'Revisar micrófono',
   }[voiceState];
+
+  const actionPreviewText = voiceActions
+    .slice(0, 4)
+    .map((action) => action.examples[0])
+    .join(' · ');
 
   return (
     <ScreenContainer>
-      <AppHeader title="Voz" subtitle="Dictado controlado por el usuario" />
+      <AppHeader title="Voz" subtitle="Dictado y comandos controlados por ti" />
 
       <View
         accessible
@@ -189,7 +280,7 @@ export default function AssistantScreen() {
             },
           ]}
         >
-          La escucha inicia con un toque y se detiene manualmente. AccesIA no aplica cambios sensibles sin mostrar primero una respuesta visible.
+          La escucha permanece activa hasta que pulses detener. Si el sistema corta el reconocimiento, AccesIA intenta mantener la escucha abierta salvo que exista un error real.
         </Text>
 
         <View style={styles.listenActions}>
@@ -200,7 +291,7 @@ export default function AssistantScreen() {
             icon="mic-outline"
             onPress={() => void handleStartListening()}
             style={styles.listenButton}
-            title="Iniciar"
+            title="Iniciar escucha"
             variant="accent"
           />
           <AccessibleButton
@@ -231,7 +322,10 @@ export default function AssistantScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected }}
               key={assistant.id}
-              onPress={() => setAssistantMode(assistant.id)}
+              onPress={() => {
+                setAssistantMode(assistant.id);
+                setResponse(getVoiceAssistant(assistant.id).stoppedText);
+              }}
               style={({ pressed }) => [
                 styles.assistantOption,
                 {
@@ -254,7 +348,7 @@ export default function AssistantScreen() {
           <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>confianza</Text>
         </View>
         <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{isVoiceRecognitionAvailable() ? 'Voz' : 'Manual'}</Text>
+          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{voiceAvailable ? 'Voz' : 'Texto'}</Text>
           <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>entrada</Text>
         </View>
       </View>
@@ -269,13 +363,94 @@ export default function AssistantScreen() {
         <InfoCard icon="sparkles-outline" text={response} title="Respuesta de AccesIA" tone="accent" />
       </View>
 
-      <AccessibleButton
-        accessibilityHint="Reproduce la respuesta visible mediante voz."
-        icon="volume-high-outline"
-        onPress={playResponse}
-        title="Escuchar respuesta"
-        variant="secondary"
+      <View style={styles.responseActions}>
+        <AccessibleButton
+          accessibilityHint="Reproduce la respuesta visible mediante voz."
+          fullWidth={false}
+          icon="volume-high-outline"
+          onPress={playResponse}
+          style={styles.responseButton}
+          title="Escuchar respuesta"
+          variant="secondary"
+        />
+        <AccessibleButton
+          accessibilityHint="Permite volver a iniciar la escucha para intentar otra indicación."
+          disabled={voiceState === 'listening'}
+          fullWidth={false}
+          icon="refresh-outline"
+          onPress={() => void handleStartListening()}
+          style={styles.responseButton}
+          title="Reintentar"
+          variant="ghost"
+        />
+      </View>
+
+      <View
+        style={[
+          styles.manualPanel,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            shadowColor: colors.shadow,
+          },
+        ]}
+      >
+        <View style={styles.manualHeader}>
+          <IconBadge icon="keypad-outline" size="sm" tone="primary" />
+          <View style={styles.manualTitleBlock}>
+            <Text style={[styles.manualTitle, { color: colors.text, fontSize: fontSizes.lg * fontMultiplier }]}>Entrada manual</Text>
+            <Text style={[styles.manualSubtitle, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Úsala si prefieres escribir o si el micrófono no está disponible.</Text>
+          </View>
+        </View>
+        <TextInput
+          accessibilityHint="Escribe una acción para que AccesIA la interprete."
+          accessibilityLabel="Indicación manual para AccesIA"
+          onChangeText={setManualCommand}
+          placeholder="Ejemplo: activar alto contraste"
+          placeholderTextColor={colors.textSubtle}
+          returnKeyType="done"
+          style={[
+            styles.manualInput,
+            {
+              backgroundColor: colors.surfaceElevated,
+              borderColor: colors.border,
+              color: colors.text,
+              fontSize: fontSizes.md * fontMultiplier,
+              lineHeight: lineHeights.md * fontMultiplier,
+            },
+          ]}
+          value={manualCommand}
+        />
+        <AccessibleButton
+          accessibilityHint="Procesa la indicación escrita."
+          disabled={!manualCommand.trim()}
+          icon="send-outline"
+          onPress={() => void handleManualCommand()}
+          title="Usar indicación"
+          variant="primary"
+        />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionKicker, { color: colors.accent, fontSize: fontSizes.xs * fontMultiplier }]}>Acciones</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xxl * fontMultiplier }]}>Comandos disponibles</Text>
+      </View>
+
+      <InfoCard
+        icon="list-outline"
+        text={actionPreviewText}
+        title="Puedes decir"
+        tone="primary"
       />
+
+      <View style={styles.actionList}>
+        {voiceActions.map((action) => (
+          <View key={action.id} style={[styles.actionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+            <Text style={[styles.actionTitle, { color: colors.text, fontSize: fontSizes.md * fontMultiplier }]}>{action.label}</Text>
+            <Text style={[styles.actionDescription, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>{action.description}</Text>
+          </View>
+        ))}
+      </View>
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionKicker, { color: colors.accent, fontSize: fontSizes.xs * fontMultiplier }]}>Historial</Text>
@@ -286,17 +461,17 @@ export default function AssistantScreen() {
         <View style={styles.historyList}>
           {history.map((item) => (
             <InfoCard
-              icon="time-outline"
+              icon={item.status === 'recognized' ? 'checkmark-circle-outline' : 'help-circle-outline'}
               key={item.id}
               text={`${item.transcript} — ${item.response}`}
-              title="Comando"
-              tone="default"
+              title={item.actionLabel ?? 'Sin acción aplicada'}
+              tone={item.status === 'recognized' ? 'success' : 'warning'}
             />
           ))}
           <AccessibleButton
             accessibilityHint="Borra el historial local de comandos recientes."
             icon="trash-outline"
-            onPress={() => setHistory([])}
+            onPress={() => void clearHistory()}
             title="Borrar historial"
             variant="ghost"
           />
@@ -304,7 +479,7 @@ export default function AssistantScreen() {
       ) : (
         <InfoCard
           icon="time-outline"
-          text="Los comandos reconocidos aparecerán aquí durante esta sesión."
+          text={historyReady ? 'Los comandos reconocidos aparecerán aquí.' : 'Cargando comandos recientes.'}
           title="Sin comandos recientes"
           tone="primary"
         />
@@ -377,7 +552,7 @@ const styles = StyleSheet.create({
   },
   assistantOption: {
     width: '47.5%',
-    minHeight: 114,
+    minHeight: 124,
     justifyContent: 'center',
     gap: spacing.xs,
     borderWidth: 1,
@@ -411,6 +586,69 @@ const styles = StyleSheet.create({
   timeline: {
     gap: spacing.md,
     marginVertical: spacing.section,
+  },
+  responseActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  responseButton: {
+    flex: 1,
+    minWidth: 140,
+  },
+  manualPanel: {
+    gap: spacing.md,
+    borderWidth: 1,
+    borderRadius: radius.xxl,
+    marginTop: spacing.section,
+    padding: spacing.lg,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
+    elevation: 3,
+  },
+  manualHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  manualTitleBlock: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  manualTitle: {
+    fontWeight: fontWeights.black,
+  },
+  manualSubtitle: {
+    fontWeight: fontWeights.medium,
+  },
+  manualInput: {
+    minHeight: 56,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontWeight: fontWeights.medium,
+  },
+  actionList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  actionCard: {
+    width: '47.5%',
+    minHeight: 112,
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.xl,
+    padding: spacing.md,
+  },
+  actionTitle: {
+    fontWeight: fontWeights.black,
+  },
+  actionDescription: {
+    fontWeight: fontWeights.medium,
   },
   historyList: {
     gap: spacing.md,

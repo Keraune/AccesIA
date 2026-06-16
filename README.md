@@ -29,6 +29,23 @@ Subtítulos → Activar burbuja
 Inicio → Abrir burbuja
 ```
 
+## Voz y dictado
+
+El módulo de voz permite iniciar y detener la escucha manualmente. Las acciones reconocidas se configuran desde `src/data/voiceActions.ts`, por lo que se pueden ampliar sin mezclar comandos dentro de la interfaz. La pantalla incluye selección de asistente, lectura de respuestas, entrada manual alternativa e historial local de comandos recientes.
+
+Acciones incluidas:
+
+```text
+activar subtítulos
+pausar subtítulos
+detener subtítulos
+aumentar letra
+abrir lectura
+abrir ajustes
+activar alto contraste
+abrir modo simple
+```
+
 ## Importante sobre subtítulos de audio interno
 
 La pantalla y la burbuja flotante preparan el flujo de subtítulos. La captura real del audio interno del dispositivo requiere integración nativa adicional con MediaProjection y AudioPlaybackCapture. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear que su audio sea capturado. Esta versión deja la experiencia, permisos base y arquitectura listos para continuar con esa integración.

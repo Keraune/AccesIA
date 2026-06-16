@@ -27,6 +27,7 @@ type SpeechRecognitionLike = {
   maxAlternatives: number;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: SpeechRecognitionErrorLike) => void) | null;
   onend: (() => void) | null;
@@ -45,6 +46,9 @@ let activeRecognition: SpeechRecognitionLike | null = null;
 let activeResolve: ((result: VoiceRecognitionResult) => void) | null = null;
 let activeTranscript = '';
 let activeConfidence = 0;
+let activeSessionId = 0;
+let manualStopRequested = false;
+let restartingRecognition = false;
 
 function getRecognitionConstructor() {
   const recognitionWindow = globalThis as RecognitionWindow;
@@ -56,6 +60,8 @@ function clearActiveRecognition() {
   activeResolve = null;
   activeTranscript = '';
   activeConfidence = 0;
+  manualStopRequested = false;
+  restartingRecognition = false;
 }
 
 function buildFinalResult(status: VoiceRecognitionStatus): VoiceRecognitionResult {
@@ -65,6 +71,12 @@ function buildFinalResult(status: VoiceRecognitionStatus): VoiceRecognitionResul
     status: activeTranscript ? 'recognized' : status,
     transcript: activeTranscript,
   };
+}
+
+function resolveActiveRecognition(result: VoiceRecognitionResult) {
+  const resolve = activeResolve;
+  clearActiveRecognition();
+  resolve?.(result);
 }
 
 export function isVoiceRecognitionAvailable() {
@@ -77,11 +89,16 @@ export function stopListeningForCommand() {
   }
 
   const recognition = activeRecognition;
-  const resolve = activeResolve;
+  manualStopRequested = true;
   const result = buildFinalResult('stopped');
-  clearActiveRecognition();
-  recognition.stop();
-  resolve?.(result);
+  resolveActiveRecognition(result);
+
+  try {
+    recognition.stop();
+  } catch {
+    recognition.abort?.();
+  }
+
   return true;
 }
 
@@ -101,16 +118,31 @@ export function listenForCommand(onTranscript?: TranscriptListener): Promise<Voi
 
   return new Promise((resolve) => {
     const recognition = new Recognition();
+    const sessionId = activeSessionId + 1;
+    activeSessionId = sessionId;
     activeRecognition = recognition;
     activeResolve = resolve;
     activeTranscript = '';
     activeConfidence = 0;
+    manualStopRequested = false;
+    restartingRecognition = false;
+
+    function isCurrentSession() {
+      return activeRecognition === recognition && activeSessionId === sessionId;
+    }
 
     function resolveOnce(status: VoiceRecognitionStatus) {
-      if (activeRecognition !== recognition) return;
+      if (!isCurrentSession()) return;
       const result = buildFinalResult(status);
-      clearActiveRecognition();
-      resolve(result);
+      resolveActiveRecognition(result);
+    }
+
+    function startRecognition() {
+      try {
+        recognition.start();
+      } catch {
+        resolveOnce(activeTranscript ? 'recognized' : 'error');
+      }
     }
 
     recognition.lang = 'es-PE';
@@ -118,6 +150,7 @@ export function listenForCommand(onTranscript?: TranscriptListener): Promise<Voi
     recognition.continuous = true;
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
+      if (!isCurrentSession()) return;
       const latestIndex = Math.max(0, event.results.length - 1);
       const bestResult = event.results[latestIndex]?.[0];
       const nextTranscript = bestResult?.transcript?.trim() ?? '';
@@ -128,12 +161,33 @@ export function listenForCommand(onTranscript?: TranscriptListener): Promise<Voi
       activeConfidence = bestResult?.confidence ?? activeConfidence;
       onTranscript?.(activeTranscript, activeConfidence);
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event) => {
+      if (!isCurrentSession()) return;
+
+      const recoverableError = event.error === 'no-speech' || event.error === 'aborted';
+      if (recoverableError && !manualStopRequested) {
+        return;
+      }
+
       resolveOnce('error');
     };
     recognition.onend = () => {
-      resolveOnce(activeTranscript ? 'recognized' : 'stopped');
+      if (!isCurrentSession()) return;
+
+      if (manualStopRequested) {
+        resolveOnce(activeTranscript ? 'recognized' : 'stopped');
+        return;
+      }
+
+      if (restartingRecognition) return;
+      restartingRecognition = true;
+      setTimeout(() => {
+        if (!isCurrentSession() || manualStopRequested) return;
+        restartingRecognition = false;
+        startRecognition();
+      }, 180);
     };
-    recognition.start();
+
+    startRecognition();
   });
 }
