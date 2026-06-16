@@ -157,11 +157,17 @@ export default function AssistantScreen() {
     const result = await listenForCommand((partialTranscript, partialConfidence) => {
       setTranscript(partialTranscript);
       setConfidence(Math.round(partialConfidence * 100));
-    });
+    }, { language: settings.captionLanguage });
 
     if (result.status === 'unavailable') {
       setVoiceState('unavailable');
       setResponse(selectedAssistant.unavailableText);
+      return;
+    }
+
+    if (result.status === 'permissionDenied') {
+      setVoiceState('error');
+      setResponse('Activa el permiso de micrófono para usar comandos de voz en este dispositivo.');
       return;
     }
 

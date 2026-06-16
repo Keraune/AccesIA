@@ -105,7 +105,7 @@ module.exports = function withAccesiaAndroidOverlay(config) {
       const sourceDir = path.join(configMod.modRequest.projectRoot, 'native', 'android');
 
       fs.mkdirSync(targetDir, { recursive: true });
-      for (const fileName of ['AccesiaOverlayModule.java', 'AccesiaOverlayPackage.java', 'AccesiaOverlayService.java']) {
+      for (const fileName of fs.readdirSync(sourceDir).filter((name) => name.endsWith('.java'))) {
         fs.copyFileSync(path.join(sourceDir, fileName), path.join(targetDir, fileName));
       }
 

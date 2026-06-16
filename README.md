@@ -1,37 +1,42 @@
 # AccesIA
 
-AccesIA es una aplicación móvil de asistencia accesible. Su objetivo principal es ayudar al usuario a leer contenido, dictar acciones, activar subtítulos visibles y adaptar la interfaz según sus necesidades visuales, auditivas, motoras o cognitivas.
+AccesIA es una aplicación móvil de asistencia accesible. Ayuda al usuario a leer contenido, escuchar textos, dictar acciones, activar una burbuja flotante de Android y adaptar la interfaz según necesidades visuales, auditivas, motoras o cognitivas.
 
 ## Funciones principales
 
-- Lectura accesible de textos con síntesis de voz.
-- Asistente por voz para dictar acciones y recibir confirmación.
+- Lectura accesible de textos con síntesis de voz del dispositivo.
+- Textos frecuentes guardados localmente.
+- Selección de velocidad y voz disponible en el sistema.
+- Asistente por voz con reconocimiento nativo Android y entrada manual alternativa.
 - Subtítulos flotantes mediante burbuja de Android.
-- Burbuja flotante de Android para mostrar AccesIA sobre otras aplicaciones.
 - Configuración de letra, contraste, tamaño de subtítulos y tema visual.
 - Perfil local con nombre, correo, foto y preferencia de uso.
 - Modo simplificado con acciones grandes y directas.
 
 ## Burbuja flotante Android
 
-La función tipo burbuja usa el permiso de Android **Mostrar sobre otras apps** (`SYSTEM_ALERT_WINDOW`). Al activarla, AccesIA inicia una burbuja arrastrable que puede permanecer visible al salir de la aplicación. Al tocarla se despliega un panel con subtítulos y controles rápidos.
+La burbuja usa el permiso **Mostrar sobre otras apps** (`SYSTEM_ALERT_WINDOW`). Al activarla, AccesIA inicia una burbuja arrastrable que puede permanecer visible al salir de la aplicación. Al tocarla se despliega un panel con acciones rápidas.
+
+Acciones del panel:
+
+```text
+Subtítulos
+Pausar o reanudar
+Tamaño
+Estilo
+Lectura
+Cerrar
+```
 
 Ruta dentro de la app:
 
 ```text
-Configuración → Burbuja flotante Android → Dar permiso → Activar burbuja
-```
-
-También puede abrirse desde:
-
-```text
-Subtítulos → Activar burbuja
-Inicio → Abrir burbuja
+Subtítulos → Dar permiso → Activar burbuja
 ```
 
 ## Voz y dictado
 
-El módulo de voz permite iniciar y detener la escucha manualmente. Las acciones reconocidas se configuran desde `src/data/voiceActions.ts`, por lo que se pueden ampliar sin mezclar comandos dentro de la interfaz. La pantalla incluye selección de asistente, lectura de respuestas, entrada manual alternativa e historial local de comandos recientes.
+El módulo de voz permite iniciar y detener la escucha manualmente. En Android se agregó un módulo nativo basado en `SpeechRecognizer`, por lo que ya no depende del reconocimiento de voz del navegador. Las acciones reconocidas se configuran desde `src/data/voiceActions.ts`.
 
 Acciones incluidas:
 
@@ -46,15 +51,32 @@ activar alto contraste
 abrir modo simple
 ```
 
+El dispositivo debe tener activo un servicio de reconocimiento de voz compatible y permiso de micrófono.
+
+## Lectura accesible
+
+El módulo de lectura permite:
+
+- escribir o pegar texto
+- reproducir, pausar, reanudar y detener
+- cambiar velocidad
+- seleccionar una voz disponible
+- guardar textos frecuentes
+- cargar o eliminar textos guardados
+- limpiar el editor
+
+En Android los textos guardados se almacenan en `SharedPreferences` mediante el módulo nativo `AccesiaStorage`.
+
 ## Importante sobre subtítulos de audio interno
 
-La pantalla y la burbuja flotante preparan el flujo de subtítulos. La captura real del audio interno del dispositivo requiere integración nativa adicional con MediaProjection y AudioPlaybackCapture. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear que su audio sea capturado. Esta versión deja la experiencia, permisos base y arquitectura listos para continuar con esa integración.
+La pantalla y la burbuja preparan el flujo de subtítulos. La captura real del audio interno del dispositivo requiere integración adicional con MediaProjection y AudioPlaybackCapture. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear que su audio sea capturado.
 
-## Ejecutar en web
+## Ejecutar en desarrollo
 
 ```bash
 npm install
-npm run web
+npx expo prebuild --platform android --clean
+npx expo run:android
 ```
 
 ## Generar APK para Android

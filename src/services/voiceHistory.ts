@@ -1,6 +1,5 @@
-import { Platform } from 'react-native';
-
 import type { VoiceActionId, VoiceAssistantMode } from '@/data/voiceActions';
+import { getLocalItem, removeLocalItem, setLocalItem } from '@/services/localStorage';
 
 export type VoiceCommandStatus = 'recognized' | 'unrecognized';
 
@@ -20,19 +19,6 @@ const voiceHistoryStorageKey = 'accesia-voice-command-history';
 const maxStoredItems = 12;
 let memoryHistory: VoiceCommandHistoryItem[] = [];
 
-type StorageGlobal = typeof globalThis & {
-  localStorage?: {
-    getItem: (key: string) => string | null;
-    setItem: (key: string, value: string) => void;
-    removeItem: (key: string) => void;
-  };
-};
-
-function getStorage() {
-  if (Platform.OS !== 'web') return null;
-  return (globalThis as StorageGlobal).localStorage ?? null;
-}
-
 function normalizeHistory(rawValue: unknown): VoiceCommandHistoryItem[] {
   if (!Array.isArray(rawValue)) return [];
 
@@ -48,15 +34,14 @@ function normalizeHistory(rawValue: unknown): VoiceCommandHistoryItem[] {
 }
 
 export async function loadVoiceCommandHistory() {
-  const storage = getStorage();
-  if (!storage) return memoryHistory;
-
   try {
-    const savedHistory = storage.getItem(voiceHistoryStorageKey);
-    if (!savedHistory) return [];
-    return normalizeHistory(JSON.parse(savedHistory));
+    const savedHistory = await getLocalItem(voiceHistoryStorageKey);
+    if (!savedHistory) return memoryHistory;
+    const normalized = normalizeHistory(JSON.parse(savedHistory));
+    memoryHistory = normalized;
+    return normalized;
   } catch {
-    return [];
+    return memoryHistory;
   }
 }
 
@@ -64,11 +49,8 @@ export async function saveVoiceCommandHistory(history: VoiceCommandHistoryItem[]
   const nextHistory = history.slice(0, maxStoredItems);
   memoryHistory = nextHistory;
 
-  const storage = getStorage();
-  if (!storage) return nextHistory;
-
   try {
-    storage.setItem(voiceHistoryStorageKey, JSON.stringify(nextHistory));
+    await setLocalItem(voiceHistoryStorageKey, JSON.stringify(nextHistory));
   } catch {
     // Keep the in-memory history if persistent storage is temporarily unavailable.
   }
@@ -83,8 +65,5 @@ export async function addVoiceCommandHistoryItem(item: VoiceCommandHistoryItem) 
 
 export async function clearVoiceCommandHistory() {
   memoryHistory = [];
-  const storage = getStorage();
-  if (storage) {
-    storage.removeItem(voiceHistoryStorageKey);
-  }
+  await removeLocalItem(voiceHistoryStorageKey);
 }

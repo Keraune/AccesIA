@@ -14,6 +14,8 @@ public class AccesiaOverlayPackage implements ReactPackage {
   public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
     List<NativeModule> modules = new ArrayList<>();
     modules.add(new AccesiaOverlayModule(reactContext));
+    modules.add(new AccesiaStorageModule(reactContext));
+    modules.add(new AccesiaVoiceModule(reactContext));
     return modules;
   }
 

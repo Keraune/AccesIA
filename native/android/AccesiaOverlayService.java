@@ -2,6 +2,7 @@ package com.keraune.accesiaapp;
 
 import android.app.Service;
 import android.content.Intent;
+import android.net.Uri;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
@@ -15,7 +16,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -136,20 +136,22 @@ public class AccesiaOverlayService extends Service {
 
     FrameLayout bubbleFrame = new FrameLayout(this);
     int bubbleDimension = getBubbleDimension();
-    bubbleFrame.setBackground(createRoundedDrawable(Color.parseColor("#FFFFFF"), dp(24), getBorderColor(), dp(1)));
+    bubbleFrame.setBackground(createBubbleDrawable());
     bubbleFrame.setPadding(dp(4), dp(4), dp(4), dp(4));
+    bubbleFrame.setContentDescription("Burbuja flotante de AccesIA");
 
-    ImageView bubbleIcon = new ImageView(this);
-    int appIconRes = getApplicationInfo().icon;
-    if (appIconRes != 0) {
-      bubbleIcon.setImageResource(appIconRes);
-    }
-    bubbleIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
-    FrameLayout.LayoutParams bubbleIconParams = new FrameLayout.LayoutParams(
+    TextView bubbleSymbol = new TextView(this);
+    bubbleSymbol.setText("CC");
+    bubbleSymbol.setGravity(Gravity.CENTER);
+    bubbleSymbol.setTextColor(Color.WHITE);
+    bubbleSymbol.setTextSize("large".equals(bubbleSize) ? 22 : 19);
+    bubbleSymbol.setTypeface(Typeface.DEFAULT_BOLD);
+    bubbleSymbol.setLetterSpacing(0.03f);
+    FrameLayout.LayoutParams bubbleSymbolParams = new FrameLayout.LayoutParams(
       FrameLayout.LayoutParams.MATCH_PARENT,
       FrameLayout.LayoutParams.MATCH_PARENT
     );
-    bubbleFrame.addView(bubbleIcon, bubbleIconParams);
+    bubbleFrame.addView(bubbleSymbol, bubbleSymbolParams);
 
     LinearLayout.LayoutParams bubbleParams = new LinearLayout.LayoutParams(bubbleDimension, bubbleDimension);
     container.addView(bubbleFrame, bubbleParams);
@@ -169,12 +171,14 @@ public class AccesiaOverlayService extends Service {
 
     LinearLayout firstRow = createRow(dp(10));
     LinearLayout secondRow = createRow(dp(8));
+    LinearLayout thirdRow = createRow(dp(8));
 
-    subtitlesButton = createActionButton("Subtítulos");
-    pauseButton = createActionButton("Pausar");
-    sizeButton = createActionButton("Tamaño");
-    styleButton = createActionButton("Estilo");
-    TextView closeButton = createActionButton("Cerrar");
+    subtitlesButton = createActionButton("▣ Subtítulos");
+    pauseButton = createActionButton("Ⅱ Pausar");
+    sizeButton = createActionButton("A± Tamaño");
+    styleButton = createActionButton("◐ Estilo");
+    TextView readingButton = createActionButton("☊ Lectura");
+    TextView closeButton = createActionButton("× Cerrar");
 
     subtitlesButton.setOnClickListener((view) -> {
       subtitlesActive = true;
@@ -202,19 +206,22 @@ public class AccesiaOverlayService extends Service {
       updateCaptionState();
     });
 
+    readingButton.setOnClickListener((view) -> openReadingScreen());
     closeButton.setOnClickListener((view) -> stopSelf());
 
     firstRow.addView(subtitlesButton, new LinearLayout.LayoutParams(0, dp(42), 1));
     firstRow.addView(pauseButton, new LinearLayout.LayoutParams(0, dp(42), 1));
     secondRow.addView(sizeButton, new LinearLayout.LayoutParams(0, dp(42), 1));
     secondRow.addView(styleButton, new LinearLayout.LayoutParams(0, dp(42), 1));
-    secondRow.addView(closeButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    thirdRow.addView(readingButton, new LinearLayout.LayoutParams(0, dp(42), 1));
+    thirdRow.addView(closeButton, new LinearLayout.LayoutParams(0, dp(42), 1));
 
     panelLayout.addView(stateText);
     panelLayout.addView(captionText);
     panelLayout.addView(sourceText);
     panelLayout.addView(firstRow);
     panelLayout.addView(secondRow);
+    panelLayout.addView(thirdRow);
     container.addView(panelLayout, panelParams);
     root.addView(container);
 
@@ -272,19 +279,19 @@ public class AccesiaOverlayService extends Service {
       stateText.setText("Subtítulos inactivos");
       captionText.setText("Toca Subtítulos para iniciar.");
       if (pauseButton != null) {
-        pauseButton.setText("Pausar");
+        pauseButton.setText("Ⅱ Pausar");
       }
     } else if (subtitlesPaused) {
       stateText.setText("Subtítulos pausados");
       captionText.setText("Pausado");
       if (pauseButton != null) {
-        pauseButton.setText("Reanudar");
+        pauseButton.setText("▶ Reanudar");
       }
     } else {
       stateText.setText("Subtítulos activos");
       captionText.setText("Esperando audio…");
       if (pauseButton != null) {
-        pauseButton.setText("Pausar");
+        pauseButton.setText("Ⅱ Pausar");
       }
     }
 
@@ -415,6 +422,35 @@ public class AccesiaOverlayService extends Service {
     if ("light".equals(theme)) return Color.parseColor("#CBD5E1");
     if ("highContrast".equals(theme)) return Color.parseColor("#FDE047");
     return Color.parseColor("#334155");
+  }
+
+  private void openReadingScreen() {
+    try {
+      Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("accesiaapp:///lectura"));
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      startActivity(intent);
+      expanded = false;
+      if (panelLayout != null) {
+        panelLayout.setVisibility(View.GONE);
+      }
+    } catch (Exception exception) {
+      Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+      if (launchIntent != null) {
+        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(launchIntent);
+      }
+    }
+  }
+
+  private GradientDrawable createBubbleDrawable() {
+    GradientDrawable drawable = new GradientDrawable(
+      GradientDrawable.Orientation.TL_BR,
+      new int[] { Color.parseColor("#111827"), Color.parseColor("#2563EB"), Color.parseColor("#7C3AED") }
+    );
+    drawable.setShape(GradientDrawable.RECTANGLE);
+    drawable.setCornerRadius(dp(22));
+    drawable.setStroke(dp(1), Color.parseColor("#93C5FD"));
+    return drawable;
   }
 
   private GradientDrawable createRoundedDrawable(int color, int radius, int strokeColor, int strokeWidth) {

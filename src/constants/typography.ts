@@ -5,27 +5,27 @@ export const fontFamilies = {
 };
 
 export const fontSizes = {
-  xxs: 10,
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 22,
-  xxl: 28,
-  display: 36,
-  hero: 42,
+  xxs: 9,
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 17,
+  xl: 19,
+  xxl: 23,
+  display: 30,
+  hero: 34,
 };
 
 export const lineHeights = {
-  xxs: 14,
-  xs: 16,
-  sm: 20,
-  md: 24,
-  lg: 28,
-  xl: 32,
-  xxl: 38,
-  display: 44,
-  hero: 50,
+  xxs: 13,
+  xs: 15,
+  sm: 18,
+  md: 22,
+  lg: 25,
+  xl: 28,
+  xxl: 32,
+  display: 38,
+  hero: 42,
 };
 
 export const fontWeights = {

@@ -1,4 +1,8 @@
-export type VoiceRecognitionStatus = 'recognized' | 'unavailable' | 'error' | 'stopped';
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+
+import type { CaptionLanguageMode } from '@/context/AccessibilityContext';
+
+export type VoiceRecognitionStatus = 'recognized' | 'unavailable' | 'permissionDenied' | 'error' | 'stopped';
 
 export type VoiceRecognitionResult = {
   transcript: string;
@@ -40,7 +44,22 @@ type RecognitionWindow = typeof globalThis & {
   webkitSpeechRecognition?: SpeechRecognitionConstructor;
 };
 
+type NativeVoiceResult = {
+  transcript?: string;
+  confidence?: number;
+  source?: 'device';
+  status?: VoiceRecognitionStatus;
+};
+
+type NativeVoiceModule = {
+  isAvailable: () => Promise<boolean>;
+  startListening: (options: { language: CaptionLanguageMode }) => Promise<NativeVoiceResult>;
+  stopListening: () => Promise<boolean>;
+};
+
 type TranscriptListener = (transcript: string, confidence: number) => void;
+
+const NativeVoice = NativeModules.AccesiaVoice as NativeVoiceModule | undefined;
 
 let activeRecognition: SpeechRecognitionLike | null = null;
 let activeResolve: ((result: VoiceRecognitionResult) => void) | null = null;
@@ -49,6 +68,7 @@ let activeConfidence = 0;
 let activeSessionId = 0;
 let manualStopRequested = false;
 let restartingRecognition = false;
+let nativeListening = false;
 
 function getRecognitionConstructor() {
   const recognitionWindow = globalThis as RecognitionWindow;
@@ -79,11 +99,45 @@ function resolveActiveRecognition(result: VoiceRecognitionResult) {
   resolve?.(result);
 }
 
+async function requestAndroidMicrophonePermission() {
+  if (Platform.OS !== 'android') return true;
+
+  const granted = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+    {
+      title: 'Permiso de micrófono',
+      message: 'AccesIA necesita usar el micrófono para reconocer comandos de voz.',
+      buttonPositive: 'Permitir',
+      buttonNegative: 'Cancelar',
+    },
+  );
+
+  return granted === PermissionsAndroid.RESULTS.GRANTED;
+}
+
+function normalizeNativeResult(result: NativeVoiceResult): VoiceRecognitionResult {
+  const transcript = result.transcript?.trim() ?? '';
+  const status = result.status ?? (transcript ? 'recognized' : 'stopped');
+  return {
+    transcript,
+    confidence: result.confidence ?? 0,
+    source: 'device',
+    status: transcript && status !== 'permissionDenied' ? 'recognized' : status,
+  };
+}
+
 export function isVoiceRecognitionAvailable() {
+  if (Platform.OS === 'android') return Boolean(NativeVoice);
   return Boolean(getRecognitionConstructor());
 }
 
 export function stopListeningForCommand() {
+  if (Platform.OS === 'android' && NativeVoice && nativeListening) {
+    nativeListening = false;
+    void NativeVoice.stopListening();
+    return true;
+  }
+
   if (!activeRecognition) {
     return false;
   }
@@ -102,7 +156,51 @@ export function stopListeningForCommand() {
   return true;
 }
 
-export function listenForCommand(onTranscript?: TranscriptListener): Promise<VoiceRecognitionResult> {
+export async function listenForCommand(
+  onTranscript?: TranscriptListener,
+  options: { language?: CaptionLanguageMode } = {},
+): Promise<VoiceRecognitionResult> {
+  if (Platform.OS === 'android') {
+    if (!NativeVoice) {
+      return {
+        confidence: 0,
+        source: 'device',
+        status: 'unavailable',
+        transcript: '',
+      };
+    }
+
+    const hasPermission = await requestAndroidMicrophonePermission();
+    if (!hasPermission) {
+      return {
+        confidence: 0,
+        source: 'device',
+        status: 'permissionDenied',
+        transcript: '',
+      };
+    }
+
+    try {
+      nativeListening = true;
+      const language = options.language && options.language !== 'auto' ? options.language : 'es-PE';
+      const result = await NativeVoice.startListening({ language });
+      nativeListening = false;
+      const normalized = normalizeNativeResult(result);
+      if (normalized.transcript) {
+        onTranscript?.(normalized.transcript, normalized.confidence);
+      }
+      return normalized;
+    } catch {
+      nativeListening = false;
+      return {
+        confidence: 0,
+        source: 'device',
+        status: 'error',
+        transcript: '',
+      };
+    }
+  }
+
   const Recognition = getRecognitionConstructor();
 
   if (!Recognition) {
@@ -145,7 +243,7 @@ export function listenForCommand(onTranscript?: TranscriptListener): Promise<Voi
       }
     }
 
-    recognition.lang = 'es-PE';
+    recognition.lang = options.language && options.language !== 'auto' ? options.language : 'es-PE';
     recognition.interimResults = true;
     recognition.continuous = true;
     recognition.maxAlternatives = 1;
