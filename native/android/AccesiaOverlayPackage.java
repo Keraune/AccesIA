@@ -16,6 +16,7 @@ public class AccesiaOverlayPackage implements ReactPackage {
     modules.add(new AccesiaOverlayModule(reactContext));
     modules.add(new AccesiaStorageModule(reactContext));
     modules.add(new AccesiaVoiceModule(reactContext));
+    modules.add(new AccesiaDeviceModule(reactContext));
     return modules;
   }
 

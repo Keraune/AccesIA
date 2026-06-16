@@ -19,6 +19,13 @@ import {
   voiceAssistants,
   VoiceAssistantMode,
 } from '@/data/voiceActions';
+import {
+  openAndroidAccessibilitySettings,
+  openAndroidAppByName,
+  openAndroidCaptionSettings,
+  openAndroidDisplaySettings,
+  performAndroidGlobalAction,
+} from '@/services/deviceControl';
 import { speakText, stopSpeech } from '@/services/speech';
 import {
   addVoiceCommandHistoryItem,
@@ -77,7 +84,7 @@ export default function AssistantScreen() {
     setHistory(nextHistory);
   }
 
-  function executeRecognizedAction(actionId: string) {
+  async function executeRecognizedAction(actionId: string) {
     switch (actionId) {
       case 'open-captions':
         setSubtitlesEnabled(true);
@@ -104,10 +111,47 @@ export default function AssistantScreen() {
         setSimplifiedMode(true);
         router.push('/modo-simplificado' as never);
         break;
+      case 'open-youtube':
+        await openAndroidAppByName('youtube');
+        break;
+      case 'open-whatsapp':
+        await openAndroidAppByName('whatsapp');
+        break;
+      case 'open-chrome':
+        await openAndroidAppByName('chrome');
+        break;
+      case 'open-camera':
+        await openAndroidAppByName('camara');
+        break;
+      case 'open-system-display':
+        await openAndroidDisplaySettings();
+        break;
+      case 'open-system-captions':
+        await openAndroidCaptionSettings();
+        break;
+      case 'open-accessibility-service':
+        await openAndroidAccessibilitySettings();
+        break;
+      case 'device-home':
+        await performAndroidGlobalAction('home');
+        break;
+      case 'device-back':
+        await performAndroidGlobalAction('back');
+        break;
+      case 'device-recents':
+        await performAndroidGlobalAction('recents');
+        break;
+      case 'device-notifications':
+        await performAndroidGlobalAction('notifications');
+        break;
+      case 'device-quick-settings':
+        await performAndroidGlobalAction('quickSettings');
+        break;
       default:
         break;
     }
   }
+
 
   async function processCommand(command: string, commandConfidence: number, source: CommandSource) {
     const trimmedCommand = command.trim();
@@ -141,7 +185,7 @@ export default function AssistantScreen() {
     });
 
     if (action) {
-      executeRecognizedAction(action.id);
+      await executeRecognizedAction(action.id);
     }
   }
 
@@ -221,7 +265,7 @@ export default function AssistantScreen() {
   }[voiceState];
 
   const actionPreviewText = voiceActions
-    .slice(0, 4)
+    .slice(0, 6)
     .map((action) => action.examples[0])
     .join(' · ');
 

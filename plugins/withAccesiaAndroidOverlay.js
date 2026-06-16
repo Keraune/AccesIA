@@ -8,8 +8,18 @@ const {
   withMainApplication,
 } = require('expo/config-plugins');
 
-const SERVICE_NAME = '.AccesiaOverlayService';
+const OVERLAY_SERVICE_NAME = '.AccesiaOverlayService';
+const ACCESSIBILITY_SERVICE_NAME = '.AccesiaAccessibilityService';
 const PACKAGE_NAME = 'AccesiaOverlayPackage';
+const QUERY_PACKAGES = [
+  'com.google.android.youtube',
+  'com.whatsapp',
+  'com.android.chrome',
+  'com.google.android.gm',
+  'com.google.android.apps.maps',
+  'com.android.camera',
+  'com.google.android.dialer',
+];
 
 function ensureArray(value) {
   if (Array.isArray(value)) return value;
@@ -17,19 +27,50 @@ function ensureArray(value) {
   return [value];
 }
 
-function addOverlayService(manifest) {
-  const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
+function addService(application, serviceConfig) {
   application.service = ensureArray(application.service);
-
-  const exists = application.service.some((service) => service.$['android:name'] === SERVICE_NAME);
+  const exists = application.service.some((service) => service.$['android:name'] === serviceConfig.$['android:name']);
   if (!exists) {
-    application.service.push({
-      $: {
-        'android:name': SERVICE_NAME,
-        'android:exported': 'false',
-      },
-    });
+    application.service.push(serviceConfig);
   }
+}
+
+function addOverlayAndAccessibilityServices(manifest) {
+  const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
+
+  addService(application, {
+    $: {
+      'android:name': OVERLAY_SERVICE_NAME,
+      'android:exported': 'false',
+    },
+  });
+
+  addService(application, {
+    $: {
+      'android:name': ACCESSIBILITY_SERVICE_NAME,
+      'android:exported': 'true',
+      'android:permission': 'android.permission.BIND_ACCESSIBILITY_SERVICE',
+    },
+    'intent-filter': [
+      {
+        action: [
+          {
+            $: {
+              'android:name': 'android.accessibilityservice.AccessibilityService',
+            },
+          },
+        ],
+      },
+    ],
+    'meta-data': [
+      {
+        $: {
+          'android:name': 'android.accessibilityservice',
+          'android:resource': '@xml/accesia_accessibility_service',
+        },
+      },
+    ],
+  });
 
   return manifest;
 }
@@ -48,6 +89,26 @@ function addUsesPermission(manifest, permissionName) {
     });
   }
 
+  return manifest;
+}
+
+function addQueries(manifest) {
+  manifest.manifest.queries = ensureArray(manifest.manifest.queries);
+  const queries = manifest.manifest.queries[0] ?? {};
+  queries.package = ensureArray(queries.package);
+
+  for (const packageName of QUERY_PACKAGES) {
+    const exists = queries.package.some((item) => item.$['android:name'] === packageName);
+    if (!exists) {
+      queries.package.push({
+        $: {
+          'android:name': packageName,
+        },
+      });
+    }
+  }
+
+  manifest.manifest.queries[0] = queries;
   return manifest;
 }
 
@@ -73,12 +134,37 @@ function addPackageToMainApplication(contents) {
   return contents;
 }
 
+function writeAccessibilityServiceXml(platformProjectRoot) {
+  const xmlDir = path.join(platformProjectRoot, 'app', 'src', 'main', 'res', 'xml');
+  fs.mkdirSync(xmlDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(xmlDir, 'accesia_accessibility_service.xml'),
+    `<?xml version="1.0" encoding="utf-8"?>\n<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"\n  android:accessibilityEventTypes="typeAllMask"\n  android:accessibilityFeedbackType="feedbackGeneric"\n  android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"\n  android:canRetrieveWindowContent="true"\n  android:canPerformGestures="true"\n  android:description="@string/accesia_accessibility_service_description"\n  android:notificationTimeout="100" />\n`,
+  );
+}
+
+function ensureAccessibilityString(platformProjectRoot) {
+  const stringsPath = path.join(platformProjectRoot, 'app', 'src', 'main', 'res', 'values', 'strings.xml');
+  if (!fs.existsSync(stringsPath)) return;
+
+  const value = 'accesia_accessibility_service_description';
+  let contents = fs.readFileSync(stringsPath, 'utf8');
+  if (contents.includes(value)) return;
+
+  contents = contents.replace(
+    '</resources>',
+    `  <string name="${value}">Permite a AccesIA ejecutar acciones globales solicitadas por voz, como inicio, atrás, recientes, notificaciones y ajustes rápidos.</string>\n</resources>`,
+  );
+  fs.writeFileSync(stringsPath, contents);
+}
+
 module.exports = function withAccesiaAndroidOverlay(config) {
   config = withAndroidManifest(config, (configMod) => {
     let manifest = configMod.modResults;
     manifest = addUsesPermission(manifest, 'android.permission.SYSTEM_ALERT_WINDOW');
     manifest = addUsesPermission(manifest, 'android.permission.RECORD_AUDIO');
-    manifest = addOverlayService(manifest);
+    manifest = addQueries(manifest);
+    manifest = addOverlayAndAccessibilityServices(manifest);
     configMod.modResults = manifest;
     return configMod;
   });
@@ -109,6 +195,8 @@ module.exports = function withAccesiaAndroidOverlay(config) {
         fs.copyFileSync(path.join(sourceDir, fileName), path.join(targetDir, fileName));
       }
 
+      writeAccessibilityServiceXml(configMod.modRequest.platformProjectRoot);
+      ensureAccessibilityString(configMod.modRequest.platformProjectRoot);
       return configMod;
     },
   ]);

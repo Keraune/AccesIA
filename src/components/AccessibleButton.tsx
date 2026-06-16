@@ -145,19 +145,19 @@ export function AccessibleButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: touchTarget.comfortable,
+    minHeight: touchTarget.minimum,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     borderWidth: 1,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    elevation: 4,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 1,
   },
   buttonWithDescription: {
     alignItems: 'flex-start',
@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   iconWrap: {
-    width: 38,
-    height: 38,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,

@@ -1,46 +1,47 @@
 # AccesIA
 
-AccesIA es una aplicación móvil de asistencia accesible. Ayuda al usuario a leer contenido, escuchar textos, dictar acciones, activar una burbuja flotante de Android y adaptar la interfaz según necesidades visuales, auditivas, motoras o cognitivas.
+AccesIA es una aplicación móvil de asistencia accesible para Android. Su objetivo es ayudar al usuario a leer, escuchar, subtitular contenido, usar comandos de voz y acceder rápidamente a funciones del dispositivo.
+
+## Enfoque del producto
+
+AccesIA combina una app React Native/Expo con módulos nativos Android. La aplicación no intenta simular accesibilidad: prepara permisos reales, servicios nativos y accesos de sistema para que el usuario pueda controlar partes del dispositivo de forma segura.
 
 ## Funciones principales
 
-- Lectura accesible de textos con síntesis de voz del dispositivo.
-- Textos frecuentes guardados localmente.
-- Selección de velocidad y voz disponible en el sistema.
-- Asistente por voz con reconocimiento nativo Android y entrada manual alternativa.
-- Subtítulos flotantes mediante burbuja de Android.
-- Configuración de letra, contraste, tamaño de subtítulos y tema visual.
-- Perfil local con nombre, correo, foto y preferencia de uso.
-- Modo simplificado con acciones grandes y directas.
+- Burbuja flotante de Android con controles rápidos.
+- Subtítulos flotantes con estilos tipo video: oscuro, claro, alto contraste y compacto.
+- Lectura accesible con escritura, pegado de texto, pausa, reanudación, velocidad, voces y textos frecuentes.
+- Reconocimiento de voz nativo Android mediante `SpeechRecognizer`.
+- Comandos para abrir apps instaladas, por ejemplo: `abrir YouTube`, `abrir WhatsApp`, `abrir Chrome`.
+- Servicio de accesibilidad para acciones globales como Inicio, Atrás, Recientes, Notificaciones y Ajustes rápidos.
+- Accesos a ajustes Android para tamaño de letra, pantalla, subtítulos del sistema y accesibilidad.
+- Tema visual más limpio, inspirado en interfaces financieras modernas: acciones directas, listas claras y menos bloques cuadrados.
 
-## Burbuja flotante Android
+## Permisos y servicios Android
 
-La burbuja usa el permiso **Mostrar sobre otras apps** (`SYSTEM_ALERT_WINDOW`). Al activarla, AccesIA inicia una burbuja arrastrable que puede permanecer visible al salir de la aplicación. Al tocarla se despliega un panel con acciones rápidas.
-
-Acciones del panel:
+AccesIA usa:
 
 ```text
-Subtítulos
-Pausar o reanudar
-Tamaño
-Estilo
-Lectura
-Cerrar
+SYSTEM_ALERT_WINDOW
+RECORD_AUDIO
+AccessibilityService
 ```
 
-Ruta dentro de la app:
+El permiso `SYSTEM_ALERT_WINDOW` permite mostrar la burbuja sobre otras aplicaciones. El permiso `RECORD_AUDIO` permite comandos por voz. El `AccessibilityService` debe ser activado manualmente por el usuario desde Ajustes de Android para ejecutar acciones globales.
+
+Ruta recomendada:
 
 ```text
-Subtítulos → Dar permiso → Activar burbuja
+Ajustes → Accesibilidad → AccesIA → Activar
 ```
 
-## Voz y dictado
-
-El módulo de voz permite iniciar y detener la escucha manualmente. En Android se agregó un módulo nativo basado en `SpeechRecognizer`, por lo que ya no depende del reconocimiento de voz del navegador. Las acciones reconocidas se configuran desde `src/data/voiceActions.ts`.
-
-Acciones incluidas:
+## Comandos de voz incluidos
 
 ```text
+abrir YouTube
+abrir WhatsApp
+abrir Chrome
+abrir cámara
 activar subtítulos
 pausar subtítulos
 detener subtítulos
@@ -49,27 +50,21 @@ abrir lectura
 abrir ajustes
 activar alto contraste
 abrir modo simple
+ir a inicio
+atrás
+abrir recientes
+abrir notificaciones
+abrir ajustes rápidos
+abrir ajustes de pantalla
+abrir subtítulos del sistema
+activar servicio de accesibilidad
 ```
 
-El dispositivo debe tener activo un servicio de reconocimiento de voz compatible y permiso de micrófono.
+## Limitaciones técnicas reales
 
-## Lectura accesible
+Android protege los ajustes globales del dispositivo. Una app normal no debe cambiar silenciosamente configuraciones del sistema como tamaño de letra global o contraste del sistema sin interacción del usuario. Por eso AccesIA abre las pantallas oficiales de Android cuando se requiere modificar esos valores. Las acciones globales sí pueden ejecutarse cuando el usuario activa el servicio de accesibilidad.
 
-El módulo de lectura permite:
-
-- escribir o pegar texto
-- reproducir, pausar, reanudar y detener
-- cambiar velocidad
-- seleccionar una voz disponible
-- guardar textos frecuentes
-- cargar o eliminar textos guardados
-- limpiar el editor
-
-En Android los textos guardados se almacenan en `SharedPreferences` mediante el módulo nativo `AccesiaStorage`.
-
-## Importante sobre subtítulos de audio interno
-
-La pantalla y la burbuja preparan el flujo de subtítulos. La captura real del audio interno del dispositivo requiere integración adicional con MediaProjection y AudioPlaybackCapture. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear que su audio sea capturado.
+La captura real de audio interno para subtítulos requiere integración adicional con `MediaProjection` y `AudioPlaybackCapture`. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear la captura de su audio.
 
 ## Ejecutar en desarrollo
 

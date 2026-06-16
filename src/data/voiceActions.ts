@@ -6,7 +6,19 @@ export type VoiceActionId =
   | 'open-reading'
   | 'open-settings'
   | 'enable-high-contrast'
-  | 'open-simple-mode';
+  | 'open-simple-mode'
+  | 'open-youtube'
+  | 'open-whatsapp'
+  | 'open-chrome'
+  | 'open-camera'
+  | 'open-system-display'
+  | 'open-system-captions'
+  | 'open-accessibility-service'
+  | 'device-home'
+  | 'device-back'
+  | 'device-recents'
+  | 'device-notifications'
+  | 'device-quick-settings';
 
 export type VoiceAssistantMode = 'clear' | 'brief' | 'guided' | 'olderAdult';
 
@@ -178,6 +190,163 @@ export const voiceActions: VoiceActionConfig[] = [
       olderAdult: 'Listo. Activaré una pantalla más sencilla, con botones grandes y claros.',
     },
   },
+
+  {
+    id: 'open-youtube',
+    label: 'Abrir YouTube',
+    description: 'Abre YouTube en Android cuando está instalado.',
+    keywords: ['abrir youtube', 'abre youtube', 'youtube', 'abrir you tube', 'reproduce youtube'],
+    examples: ['abrir YouTube'],
+    responses: {
+      clear: 'Abriré YouTube en tu dispositivo.',
+      brief: 'Abriendo YouTube.',
+      guided: 'Buscaré YouTube en Android y lo abriré si está instalado.',
+      olderAdult: 'Listo. Voy a abrir YouTube en tu celular.',
+    },
+  },
+  {
+    id: 'open-whatsapp',
+    label: 'Abrir WhatsApp',
+    description: 'Abre WhatsApp desde comandos de voz.',
+    keywords: ['abrir whatsapp', 'abre whatsapp', 'whatsapp', 'abrir whats app'],
+    examples: ['abrir WhatsApp'],
+    responses: {
+      clear: 'Abriré WhatsApp en tu dispositivo.',
+      brief: 'Abriendo WhatsApp.',
+      guided: 'Buscaré WhatsApp en Android y lo abriré si está instalado.',
+      olderAdult: 'Listo. Voy a abrir WhatsApp.',
+    },
+  },
+  {
+    id: 'open-chrome',
+    label: 'Abrir Chrome',
+    description: 'Abre el navegador Chrome.',
+    keywords: ['abrir chrome', 'abre chrome', 'google chrome', 'navegador'],
+    examples: ['abrir Chrome'],
+    responses: {
+      clear: 'Abriré Chrome en tu dispositivo.',
+      brief: 'Abriendo Chrome.',
+      guided: 'Abriré el navegador Chrome para continuar fuera de AccesIA.',
+      olderAdult: 'Listo. Voy a abrir Chrome.',
+    },
+  },
+  {
+    id: 'open-camera',
+    label: 'Abrir cámara',
+    description: 'Intenta abrir la aplicación de cámara del dispositivo.',
+    keywords: ['abrir cámara', 'abrir camara', 'abre la cámara', 'abre la camara', 'cámara', 'camara'],
+    examples: ['abrir cámara'],
+    responses: {
+      clear: 'Abriré la cámara del dispositivo.',
+      brief: 'Abriendo cámara.',
+      guided: 'Abriré la aplicación de cámara si Android la encuentra instalada.',
+      olderAdult: 'Listo. Voy a abrir la cámara.',
+    },
+  },
+  {
+    id: 'open-system-display',
+    label: 'Ajustes de pantalla',
+    description: 'Abre los ajustes Android de pantalla para tamaño de letra, visualización y contraste del sistema.',
+    keywords: ['tamaño del sistema', 'letra del celular', 'pantalla del celular', 'aumentar tamaño del celular', 'abrir ajustes de pantalla', 'display settings'],
+    examples: ['abrir ajustes de pantalla'],
+    responses: {
+      clear: 'Abriré los ajustes de pantalla de Android para cambiar tamaño de letra o visualización del sistema.',
+      brief: 'Abriendo pantalla.',
+      guided: 'Te llevaré a los ajustes de pantalla. Ahí puedes cambiar tamaño de letra y visualización del dispositivo.',
+      olderAdult: 'Abriré los ajustes de pantalla para que puedas aumentar la letra del celular.',
+    },
+  },
+  {
+    id: 'open-system-captions',
+    label: 'Ajustes de subtítulos Android',
+    description: 'Abre los ajustes de subtítulos del sistema Android.',
+    keywords: ['subtítulos del sistema', 'subtitulos del sistema', 'caption settings', 'ajustes de subtítulos android', 'subtítulos android'],
+    examples: ['abrir subtítulos del sistema'],
+    responses: {
+      clear: 'Abriré los ajustes de subtítulos de Android.',
+      brief: 'Abriendo subtítulos Android.',
+      guided: 'Te llevaré a los ajustes de subtítulos del sistema para cambiar estilo y tamaño.',
+      olderAdult: 'Abriré la configuración de subtítulos del celular.',
+    },
+  },
+  {
+    id: 'open-accessibility-service',
+    label: 'Activar servicio de accesibilidad',
+    description: 'Abre ajustes de accesibilidad para habilitar acciones globales de AccesIA.',
+    keywords: ['activar servicio de accesibilidad', 'permiso de accesibilidad', 'abrir accesibilidad', 'control del dispositivo', 'controlar celular'],
+    examples: ['activar servicio de accesibilidad'],
+    responses: {
+      clear: 'Abriré Accesibilidad de Android. Activa AccesIA para permitir acciones globales como inicio, atrás y recientes.',
+      brief: 'Abriendo accesibilidad.',
+      guided: 'Te llevaré a Accesibilidad. Desde ahí debes activar AccesIA para que los comandos puedan controlar acciones del dispositivo.',
+      olderAdult: 'Abriré Accesibilidad. Busca AccesIA y actívala para usar controles del celular.',
+    },
+  },
+  {
+    id: 'device-home',
+    label: 'Ir a inicio',
+    description: 'Ejecuta la acción global Inicio con el servicio de accesibilidad.',
+    keywords: ['ir a inicio', 'pantalla de inicio', 'volver al inicio', 'home'],
+    examples: ['ir a inicio'],
+    responses: {
+      clear: 'Enviaré el dispositivo a la pantalla de inicio.',
+      brief: 'Inicio.',
+      guided: 'Usaré el servicio de accesibilidad para ir a la pantalla de inicio.',
+      olderAdult: 'Voy a llevarte a la pantalla principal del celular.',
+    },
+  },
+  {
+    id: 'device-back',
+    label: 'Atrás',
+    description: 'Ejecuta la acción global Atrás con el servicio de accesibilidad.',
+    keywords: ['atrás', 'atras', 'volver atrás', 'volver atras', 'regresar'],
+    examples: ['atrás'],
+    responses: {
+      clear: 'Ejecutaré la acción Atrás.',
+      brief: 'Atrás.',
+      guided: 'Usaré el servicio de accesibilidad para volver a la pantalla anterior.',
+      olderAdult: 'Voy a regresar a la pantalla anterior.',
+    },
+  },
+  {
+    id: 'device-recents',
+    label: 'Apps recientes',
+    description: 'Muestra aplicaciones recientes con el servicio de accesibilidad.',
+    keywords: ['apps recientes', 'aplicaciones recientes', 'abrir recientes', 'recientes'],
+    examples: ['abrir recientes'],
+    responses: {
+      clear: 'Abriré la vista de aplicaciones recientes.',
+      brief: 'Recientes.',
+      guided: 'Usaré una acción global para mostrar las aplicaciones recientes.',
+      olderAdult: 'Mostraré las aplicaciones recientes.',
+    },
+  },
+  {
+    id: 'device-notifications',
+    label: 'Notificaciones',
+    description: 'Abre el panel de notificaciones mediante accesibilidad.',
+    keywords: ['abrir notificaciones', 'notificaciones', 'panel de notificaciones'],
+    examples: ['abrir notificaciones'],
+    responses: {
+      clear: 'Abriré el panel de notificaciones.',
+      brief: 'Notificaciones.',
+      guided: 'Usaré el servicio de accesibilidad para mostrar tus notificaciones.',
+      olderAdult: 'Voy a abrir las notificaciones del celular.',
+    },
+  },
+  {
+    id: 'device-quick-settings',
+    label: 'Ajustes rápidos',
+    description: 'Abre el panel de ajustes rápidos mediante accesibilidad.',
+    keywords: ['ajustes rápidos', 'ajustes rapidos', 'panel rápido', 'panel rapido', 'wifi bluetooth'],
+    examples: ['abrir ajustes rápidos'],
+    responses: {
+      clear: 'Abriré el panel de ajustes rápidos.',
+      brief: 'Ajustes rápidos.',
+      guided: 'Usaré el servicio de accesibilidad para mostrar los controles rápidos del sistema.',
+      olderAdult: 'Voy a abrir los ajustes rápidos del celular.',
+    },
+  },
 ];
 
 export function getVoiceAssistant(mode: VoiceAssistantMode) {
@@ -203,9 +372,9 @@ export function findVoiceAction(transcript: string) {
 
 export function getUnrecognizedResponse(mode: VoiceAssistantMode) {
   return {
-    clear: 'No encontré una acción para esa indicación. Puedes pedir subtítulos, lectura, letra grande, alto contraste, modo simple o ajustes.',
+    clear: 'No encontré una acción para esa indicación. Puedes pedir abrir YouTube, subtítulos, lectura, letra grande, alto contraste, inicio, atrás o ajustes.',
     brief: 'No reconocí una acción.',
-    guided: 'No pude relacionar la indicación con una acción. Prueba con: activar subtítulos, abrir lectura, aumentar letra, activar alto contraste o abrir ajustes.',
-    olderAdult: 'No logré entender qué acción necesitas. Puedes intentar con una frase corta, por ejemplo: abrir lectura.',
+    guided: 'No pude relacionar la indicación con una acción. Prueba con: abrir YouTube, activar subtítulos, abrir lectura, aumentar letra, activar alto contraste, ir a inicio o abrir ajustes.',
+    olderAdult: 'No logré entender qué acción necesitas. Puedes intentar con una frase corta, por ejemplo: abrir YouTube.',
   }[mode];
 }

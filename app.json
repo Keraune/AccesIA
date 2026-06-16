@@ -20,8 +20,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.keraune.accesiaapp",
       "permissions": [
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.RECORD_AUDIO"
+        "SYSTEM_ALERT_WINDOW",
+        "RECORD_AUDIO"
       ]
     },
     "web": {

@@ -1,16 +1,22 @@
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { AccessibilityPresetCard } from '@/components/AccessibilityPresetCard';
 import { AccessibilityToggle } from '@/components/AccessibilityToggle';
 import { AccessibleButton } from '@/components/AccessibleButton';
 import { AppHeader } from '@/components/AppHeader';
-import { IconBadge } from '@/components/IconBadge';
 import { InfoCard } from '@/components/InfoCard';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { CaptionSizeMode, CaptionThemeMode, FontScaleMode, ReadingSpeedMode, useAccessibility } from '@/context/AccessibilityContext';
-import { accessibilityPresets } from '@/data/accessibilityPresets';
+import type { AppIconName } from '@/data/appModules';
+import {
+  isAccesiaAccessibilityServiceEnabled,
+  openAndroidAccessibilitySettings,
+  openAndroidCaptionSettings,
+  openAndroidDisplaySettings,
+  performAndroidGlobalAction,
+} from '@/services/deviceControl';
 import { openAndroidOverlaySettings, startAndroidFloatingAssistant, stopAndroidFloatingAssistant } from '@/services/systemOverlay';
 
 const fontOptions: { label: string; value: FontScaleMode; hint: string }[] = [
@@ -39,10 +45,49 @@ const captionThemeOptions: { label: string; value: CaptionThemeMode }[] = [
   { label: 'Compacto', value: 'compact' },
 ];
 
+type DeviceRowProps = {
+  title: string;
+  description: string;
+  icon: AppIconName;
+  onPress: () => void;
+};
+
+function DeviceRow({ title, description, icon, onPress }: DeviceRowProps) {
+  const { colors, fontMultiplier } = useAccessibility();
+
+  return (
+    <Pressable
+      accessibilityHint={description}
+      accessibilityLabel={title}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.deviceRow,
+        {
+          backgroundColor: pressed ? colors.surfaceElevated : colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
+      <View style={[styles.deviceIcon, { backgroundColor: colors.accentSoft }]}> 
+        <Ionicons color={colors.text} name={icon} size={20} />
+      </View>
+      <View style={styles.deviceTextBlock}>
+        <Text style={[styles.deviceTitle, { color: colors.text, fontSize: fontSizes.md * fontMultiplier, lineHeight: lineHeights.md * fontMultiplier }]}>
+          {title}
+        </Text>
+        <Text style={[styles.deviceDescription, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier, lineHeight: lineHeights.xs * fontMultiplier }]}>
+          {description}
+        </Text>
+      </View>
+      <Ionicons color={colors.textSubtle} name="chevron-forward" size={18} />
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const {
     activeSettingsCount,
-    applySettings,
     colors,
     fontMultiplier,
     lastChangeLabel,
@@ -98,477 +143,227 @@ export default function SettingsScreen() {
     await stopAndroidFloatingAssistant();
   }
 
+  async function runGlobalAction(action: 'home' | 'back' | 'recents' | 'notifications' | 'quickSettings') {
+    const enabled = await isAccesiaAccessibilityServiceEnabled();
+    if (!enabled) {
+      Alert.alert('Activa AccesIA', 'Para controlar el dispositivo con acciones globales, activa AccesIA en los ajustes de accesibilidad.');
+      await openAndroidAccessibilitySettings();
+      return;
+    }
+    await performAndroidGlobalAction(action);
+  }
+
   return (
     <ScreenContainer>
-      <AppHeader title="Configuración" subtitle="Centro de accesibilidad" showSettings={false} />
+      <AppHeader title="Ajustes" subtitle="Accesibilidad del dispositivo y de AccesIA" showSettings={false} />
 
-      <View
-        style={[
-          styles.hero,
-          {
-            backgroundColor: colors.primaryDeep,
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <IconBadge icon="options-outline" inverted size="lg" tone="accent" />
-        <Text
-          style={[
-            styles.heroTitle,
-            {
-              color: colors.white,
-              fontSize: fontSizes.display * fontMultiplier,
-              lineHeight: lineHeights.display * fontMultiplier,
-            },
-          ]}
-        >
-          Personaliza AccesIA a tu forma de interactuar.
-        </Text>
-        <Text
-          style={[
-            styles.heroDescription,
-            {
-              color: 'rgba(255,255,255,0.78)',
-              fontSize: fontSizes.md * fontMultiplier,
-              lineHeight: lineHeights.md * fontMultiplier,
-            },
-          ]}
-        >
-          Los cambios se aplican en toda la aplicación y se guardan localmente en este dispositivo.
-        </Text>
+      <View style={[styles.walletHeader, { backgroundColor: colors.primaryDeep }]}> 
+        <Text style={[styles.kicker, { color: colors.accent, fontSize: fontSizes.xs * fontMultiplier }]}>Centro AccesIA</Text>
+        <Text style={[styles.heroTitle, { color: colors.white, fontSize: fontSizes.display * fontMultiplier, lineHeight: lineHeights.display * fontMultiplier }]}>Control visual, voz y subtítulos.</Text>
+        <Text style={[styles.heroDescription, { color: 'rgba(255,255,255,0.76)', fontSize: fontSizes.sm * fontMultiplier, lineHeight: lineHeights.sm * fontMultiplier }]}>{lastChangeLabel}</Text>
       </View>
 
-      <View style={styles.metricsRow}>
-        <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{activeSettingsCount}</Text>
-          <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>ajustes activos</Text>
+      <View style={styles.quickStatsRow}>
+        <View style={[styles.statItem, { borderColor: colors.border }]}> 
+          <Text style={[styles.statValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{activeSettingsCount}</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>activos</Text>
         </View>
-        <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-          <Text style={[styles.metricValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{settings.readingSpeed}×</Text>
-          <Text style={[styles.metricLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>lectura</Text>
+        <View style={[styles.statItem, { borderColor: colors.border }]}> 
+          <Text style={[styles.statValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{settings.readingSpeed}×</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>lectura</Text>
         </View>
+        <View style={[styles.statItem, { borderColor: colors.border }]}> 
+          <Text style={[styles.statValue, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>{settings.captionSize === 'extraLarge' ? 'XL' : settings.captionSize === 'large' ? 'L' : 'M'}</Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>subtítulo</Text>
+        </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Android</Text>
+        <Text style={[styles.sectionDescription, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Accesos directos para permisos y controles reales del dispositivo.</Text>
+      </View>
+
+      <View style={[styles.deviceList, { borderColor: colors.border }]}> 
+        <DeviceRow
+          description="Activa AccesIA para permitir comandos como Inicio, Atrás, Recientes y Notificaciones."
+          icon="accessibility-outline"
+          onPress={() => void openAndroidAccessibilitySettings()}
+          title="Servicio de accesibilidad"
+        />
+        <DeviceRow
+          description="Abre Android para aumentar tamaño de texto, visualización y opciones de pantalla."
+          icon="text-outline"
+          onPress={() => void openAndroidDisplaySettings()}
+          title="Tamaño y pantalla del sistema"
+        />
+        <DeviceRow
+          description="Abre los subtítulos del sistema Android, similar al estilo de subtítulos de video."
+          icon="chatbox-ellipses-outline"
+          onPress={() => void openAndroidCaptionSettings()}
+          title="Subtítulos de Android"
+        />
+      </View>
+
+      <View style={styles.actionStrip}>
+        <AccessibleButton fullWidth={false} icon="home-outline" onPress={() => void runGlobalAction('home')} style={styles.stripButton} title="Inicio" variant="secondary" />
+        <AccessibleButton fullWidth={false} icon="arrow-back-outline" onPress={() => void runGlobalAction('back')} style={styles.stripButton} title="Atrás" variant="secondary" />
+        <AccessibleButton fullWidth={false} icon="albums-outline" onPress={() => void runGlobalAction('recents')} style={styles.stripButton} title="Recientes" variant="secondary" />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Burbuja y subtítulos</Text>
+      </View>
+      <View style={styles.actionStrip}>
+        <AccessibleButton fullWidth={false} icon="shield-checkmark-outline" onPress={() => void openAndroidOverlaySettings()} style={styles.stripButton} title="Permiso" variant="secondary" />
+        <AccessibleButton fullWidth={false} icon="radio-button-on-outline" onPress={() => void startOverlayBubble()} style={styles.stripButton} title="Activar" variant="accent" />
+        <AccessibleButton fullWidth={false} icon="stop-circle-outline" onPress={() => void stopOverlayBubble()} style={styles.stripButton} title="Detener" variant="ghost" />
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Apariencia</Text>
+      </View>
+      <View style={styles.optionGroup}>
+        <Text style={[styles.optionLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Letra de AccesIA</Text>
+        <View style={styles.actionStrip}>
+          {fontOptions.map((option) => (
+            <AccessibleButton key={option.value} accessibilityHint={option.hint} fullWidth={false} onPress={() => setFontScale(option.value)} style={styles.stripButton} title={option.label} variant={settings.fontScale === option.value ? 'accent' : 'secondary'} />
+          ))}
+        </View>
+        <Text style={[styles.optionLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Velocidad de lectura</Text>
+        <View style={styles.actionStrip}>
+          {speedOptions.map((option) => (
+            <AccessibleButton key={option.value} fullWidth={false} onPress={() => setReadingSpeed(option.value)} style={styles.stripButton} title={option.label} variant={settings.readingSpeed === option.value ? 'accent' : 'secondary'} />
+          ))}
+        </View>
+        <Text style={[styles.optionLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Subtítulos</Text>
+        <View style={styles.actionStrip}>
+          {captionSizeOptions.map((option) => (
+            <AccessibleButton key={option.value} fullWidth={false} onPress={() => setCaptionSize(option.value)} style={styles.stripButton} title={option.label} variant={settings.captionSize === option.value ? 'accent' : 'secondary'} />
+          ))}
+        </View>
+        <View style={styles.actionStrip}>
+          {captionThemeOptions.map((option) => (
+            <AccessibleButton key={option.value} fullWidth={false} onPress={() => setCaptionTheme(option.value)} style={styles.stripButton} title={option.label} variant={settings.captionTheme === option.value ? 'accent' : 'secondary'} />
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Preferencias rápidas</Text>
+      </View>
+      <View style={styles.toggleList}>
+        <AccessibilityToggle accessibilityHint="Activa colores de alto contraste para mejorar la lectura." description="Mejora legibilidad dentro de AccesIA." icon="contrast-outline" label="Alto contraste" onValueChange={setHighContrast} value={settings.highContrast} />
+        <AccessibilityToggle accessibilityHint="Activa subtítulos automáticos dentro de AccesIA." description="Mantiene visible el estado de subtítulos." icon="chatbubbles-outline" label="Subtítulos" onValueChange={setSubtitlesEnabled} value={settings.subtitlesEnabled} />
+        <AccessibilityToggle accessibilityHint="Activa comandos de voz para navegación." description="Permite usar comandos hablados o escritos." icon="mic-outline" label="Comandos de voz" onValueChange={setVoiceCommandsEnabled} value={settings.voiceCommandsEnabled} />
+        <AccessibilityToggle accessibilityHint="Activa una interfaz con menos opciones visibles." description="Reduce carga visual." icon="sparkles-outline" label="Modo simple" onValueChange={setSimplifiedMode} value={settings.simplifiedMode} />
+        <AccessibilityToggle accessibilityHint="Muestra accesos principales en el inicio." description="Permite entrar rápido a funciones importantes." icon="apps-outline" label="Accesos rápidos" onValueChange={setQuickAccessEnabled} value={settings.quickAccessEnabled} />
+        <AccessibilityToggle accessibilityHint="Mantiene etiquetas descriptivas para lectores de pantalla." description="Mejora compatibilidad con tecnologías de apoyo." icon="ear-outline" label="Lectores de pantalla" onValueChange={setScreenReaderSupportEnabled} value={settings.screenReaderSupportEnabled} />
       </View>
 
       <InfoCard
-        icon="sync-outline"
-        text={lastChangeLabel}
-        title="Último cambio aplicado"
+        icon="information-circle-outline"
+        text="Por seguridad de Android, AccesIA abre los ajustes del sistema para cambios globales como tamaño de letra o contraste. Los comandos globales requieren activar el servicio de accesibilidad."
+        title="Control del dispositivo"
         tone="primary"
       />
 
-      <View style={[styles.fontPanel, { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: colors.shadow }]}>
-        <View style={styles.panelHeader}>
-          <IconBadge icon="phone-portrait-outline" size="sm" tone="accent" />
-          <View>
-            <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Burbuja flotante Android</Text>
-            <Text style={[styles.sectionDescription, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Permite que AccesIA se muestre sobre otras aplicaciones como una burbuja arrastrable.</Text>
-          </View>
-        </View>
-        <View style={styles.fontRow}>
-          <AccessibleButton
-            accessibilityHint="Abre la pantalla del sistema para permitir mostrar AccesIA sobre otras aplicaciones."
-            fullWidth={false}
-            icon="shield-checkmark-outline"
-            onPress={() => void openAndroidOverlaySettings()}
-            style={styles.fontButton}
-            title="Dar permiso"
-            variant="secondary"
-          />
-          <AccessibleButton
-            accessibilityHint="Inicia la burbuja flotante de AccesIA fuera de la aplicación."
-            fullWidth={false}
-            icon="albums-outline"
-            onPress={() => void startOverlayBubble()}
-            style={styles.fontButton}
-            title="Activar burbuja"
-            variant="accent"
-          />
-          <AccessibleButton
-            accessibilityHint="Detiene la burbuja flotante."
-            fullWidth={false}
-            icon="stop-circle-outline"
-            onPress={() => void stopOverlayBubble()}
-            style={styles.fontButton}
-            title="Detener"
-            variant="ghost"
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color: colors.text,
-              fontSize: fontSizes.xxl * fontMultiplier,
-              lineHeight: lineHeights.xxl * fontMultiplier,
-            },
-          ]}
-        >
-          Perfiles rápidos
-        </Text>
-        <Text
-          style={[
-            styles.sectionDescription,
-            {
-              color: colors.textMuted,
-              fontSize: fontSizes.md * fontMultiplier,
-              lineHeight: lineHeights.md * fontMultiplier,
-            },
-          ]}
-        >
-          Aplica configuraciones recomendadas según el perfil del usuario.
-        </Text>
-        <View style={styles.presetsGrid}>
-          {accessibilityPresets.map((preset) => (
-            <AccessibilityPresetCard
-              key={preset.id}
-              onApply={() => applySettings(preset.settings, `Perfil aplicado: ${preset.title}.`)}
-              preset={preset}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View
-        style={[
-          styles.fontPanel,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <View style={styles.panelHeader}>
-          <IconBadge icon="text-outline" size="sm" tone="secondary" />
-          <View>
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
-                  color: colors.text,
-                  fontSize: fontSizes.xl * fontMultiplier,
-                  lineHeight: lineHeights.xl * fontMultiplier,
-                },
-              ]}
-            >
-              Tamaño de letra
-            </Text>
-            <Text
-              style={[
-                styles.sectionDescription,
-                {
-                  color: colors.textMuted,
-                  fontSize: fontSizes.sm * fontMultiplier,
-                  lineHeight: lineHeights.sm * fontMultiplier,
-                },
-              ]}
-            >
-              Elige un nivel cómodo para leer.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.fontRow}>
-          {fontOptions.map((option) => (
-            <AccessibleButton
-              accessibilityHint={option.hint}
-              fullWidth={false}
-              key={option.value}
-              onPress={() => setFontScale(option.value)}
-              style={styles.fontButton}
-              title={option.label}
-              variant={settings.fontScale === option.value ? 'accent' : 'secondary'}
-            />
-          ))}
-        </View>
-      </View>
-
-      <View
-        style={[
-          styles.fontPanel,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <View style={styles.panelHeader}>
-          <IconBadge icon="speedometer-outline" size="sm" tone="accent" />
-          <View>
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
-                  color: colors.text,
-                  fontSize: fontSizes.xl * fontMultiplier,
-                  lineHeight: lineHeights.xl * fontMultiplier,
-                },
-              ]}
-            >
-              Velocidad de lectura
-            </Text>
-            <Text
-              style={[
-                styles.sectionDescription,
-                {
-                  color: colors.textMuted,
-                  fontSize: fontSizes.sm * fontMultiplier,
-                  lineHeight: lineHeights.sm * fontMultiplier,
-                },
-              ]}
-            >
-              Ajusta el ritmo de la síntesis de voz.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.fontRow}>
-          {speedOptions.map((option) => (
-            <AccessibleButton
-              accessibilityHint={`Cambia la velocidad de lectura a ${option.label}.`}
-              fullWidth={false}
-              key={option.value}
-              onPress={() => setReadingSpeed(option.value)}
-              style={styles.fontButton}
-              title={option.label}
-              variant={settings.readingSpeed === option.value ? 'accent' : 'secondary'}
-            />
-          ))}
-        </View>
-      </View>
-
-
-      <View
-        style={[
-          styles.fontPanel,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
-        <View style={styles.panelHeader}>
-          <IconBadge icon="chatbox-ellipses-outline" size="sm" tone="primary" />
-          <View>
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
-                  color: colors.text,
-                  fontSize: fontSizes.xl * fontMultiplier,
-                  lineHeight: lineHeights.xl * fontMultiplier,
-                },
-              ]}
-            >
-              Subtítulos flotantes
-            </Text>
-            <Text
-              style={[
-                styles.sectionDescription,
-                {
-                  color: colors.textMuted,
-                  fontSize: fontSizes.sm * fontMultiplier,
-                  lineHeight: lineHeights.sm * fontMultiplier,
-                },
-              ]}
-            >
-              Ajusta tamaño y estilo del panel que aparece sobre el contenido con audio.
-            </Text>
-          </View>
-        </View>
-
-        <Text style={[styles.smallLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Tamaño</Text>
-        <View style={styles.fontRow}>
-          {captionSizeOptions.map((option) => (
-            <AccessibleButton
-              accessibilityHint={`Cambia el tamaño de subtítulos a ${option.label}.`}
-              fullWidth={false}
-              key={option.value}
-              onPress={() => setCaptionSize(option.value)}
-              style={styles.fontButton}
-              title={option.label}
-              variant={settings.captionSize === option.value ? 'accent' : 'secondary'}
-            />
-          ))}
-        </View>
-
-        <Text style={[styles.smallLabel, { color: colors.textMuted, fontSize: fontSizes.xs * fontMultiplier }]}>Diseño</Text>
-        <View style={styles.fontRow}>
-          {captionThemeOptions.map((option) => (
-            <AccessibleButton
-              accessibilityHint={`Cambia el diseño de subtítulos a ${option.label}.`}
-              fullWidth={false}
-              key={option.value}
-              onPress={() => setCaptionTheme(option.value)}
-              style={styles.fontButton}
-              title={option.label}
-              variant={settings.captionTheme === option.value ? 'accent' : 'secondary'}
-            />
-          ))}
-        </View>
-      </View>
-
-
-      <View style={styles.section}>
-        <Text
-          style={[
-            styles.sectionTitle,
-            {
-              color: colors.text,
-              fontSize: fontSizes.xxl * fontMultiplier,
-              lineHeight: lineHeights.xxl * fontMultiplier,
-            },
-          ]}
-        >
-          Opciones inclusivas
-        </Text>
-        <AccessibilityToggle
-          accessibilityHint="Activa colores de alto contraste para mejorar la lectura."
-          description="Útil para personas con baja visión o sensibilidad al contraste."
-          icon="contrast-outline"
-          label="Alto contraste"
-          onValueChange={setHighContrast}
-          value={settings.highContrast}
-        />
-        <AccessibilityToggle
-          accessibilityHint="Activa subtítulos automáticos para contenido multimedia."
-          description="Muestra texto visible cuando el contenido tiene audio."
-          icon="chatbubbles-outline"
-          label="Subtítulos automáticos"
-          onValueChange={setSubtitlesEnabled}
-          value={settings.subtitlesEnabled}
-        />
-        <AccessibilityToggle
-          accessibilityHint="Activa comandos de voz para navegación."
-          description="Permite navegar con instrucciones habladas cuando el dispositivo lo permite."
-          icon="mic-outline"
-          label="Comandos de voz"
-          onValueChange={setVoiceCommandsEnabled}
-          value={settings.voiceCommandsEnabled}
-        />
-        <AccessibilityToggle
-          accessibilityHint="Activa una interfaz con menos opciones visibles."
-          description="Reduce la carga cognitiva y prioriza cuatro acciones esenciales."
-          icon="sparkles-outline"
-          label="Modo simplificado"
-          onValueChange={setSimplifiedMode}
-          value={settings.simplifiedMode}
-        />
-        <AccessibilityToggle
-          accessibilityHint="Muestra accesos principales para reducir pasos."
-          description="Facilita tareas frecuentes desde la pantalla de inicio."
-          icon="apps-outline"
-          label="Accesos rápidos"
-          onValueChange={setQuickAccessEnabled}
-          value={settings.quickAccessEnabled}
-        />
-        <AccessibilityToggle
-          accessibilityHint="Mantiene etiquetas descriptivas para tecnologías de apoyo."
-          description="Refuerza compatibilidad con lectores de pantalla mediante etiquetas descriptivas."
-          icon="ear-outline"
-          label="Lectores de pantalla"
-          onValueChange={setScreenReaderSupportEnabled}
-          value={settings.screenReaderSupportEnabled}
-        />
-      </View>
-
-      <AccessibleButton
-        accessibilityHint="Vuelve a la configuración inicial de AccesIA."
-        icon="refresh-outline"
-        onPress={resetSettings}
-        title="Restablecer preferencias"
-        variant="ghost"
-      />
+      <AccessibleButton accessibilityHint="Vuelve a la configuración inicial de AccesIA." icon="refresh-outline" onPress={resetSettings} title="Restablecer preferencias" variant="ghost" />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    gap: spacing.lg,
-    borderWidth: 1,
+  walletHeader: {
+    gap: spacing.md,
     borderRadius: radius.xxl,
     padding: spacing.xxl,
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.22,
-    shadowRadius: 34,
-    elevation: 8,
+  },
+  kicker: {
+    fontWeight: fontWeights.black,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   heroTitle: {
     fontWeight: fontWeights.black,
-    letterSpacing: -1,
+    letterSpacing: -0.9,
   },
   heroDescription: {
     fontWeight: fontWeights.medium,
   },
-  metricsRow: {
+  quickStatsRow: {
     flexDirection: 'row',
     gap: spacing.md,
-    marginTop: spacing.section,
+    marginTop: spacing.xl,
   },
-  metricCard: {
+  statItem: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
+    borderBottomWidth: 1,
+    paddingBottom: spacing.md,
   },
-  metricValue: {
+  statValue: {
     fontWeight: fontWeights.black,
   },
-  metricLabel: {
+  statLabel: {
     fontWeight: fontWeights.extraBold,
     textTransform: 'uppercase',
   },
-  section: {
-    gap: spacing.md,
+  sectionHeader: {
+    gap: spacing.xs,
     marginTop: spacing.section,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     fontWeight: fontWeights.black,
-    letterSpacing: -0.6,
+    letterSpacing: -0.4,
   },
   sectionDescription: {
     fontWeight: fontWeights.medium,
   },
-  presetsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
+  deviceList: {
+    borderTopWidth: 1,
   },
-  fontPanel: {
-    gap: spacing.lg,
-    borderWidth: 1,
-    borderRadius: radius.xxl,
-    marginTop: spacing.section,
-    padding: spacing.lg,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 4,
-  },
-  panelHeader: {
+  deviceRow: {
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    borderBottomWidth: 1,
+    paddingVertical: spacing.md,
   },
-  fontRow: {
+  deviceIcon: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+  },
+  deviceTextBlock: {
+    flex: 1,
+  },
+  deviceTitle: {
+    fontWeight: fontWeights.extraBold,
+  },
+  deviceDescription: {
+    fontWeight: fontWeights.medium,
+  },
+  actionStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  stripButton: {
+    flex: 1,
+    minWidth: 96,
+  },
+  optionGroup: {
     gap: spacing.md,
   },
-  fontButton: {
-    flex: 1,
-    minWidth: 100,
-  },
-  smallLabel: {
+  optionLabel: {
     fontWeight: fontWeights.extraBold,
-    letterSpacing: 0.7,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
+  },
+  toggleList: {
+    gap: spacing.md,
   },
 });
