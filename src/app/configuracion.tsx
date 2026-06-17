@@ -233,6 +233,11 @@ export default function SettingsScreen() {
         return;
       }
 
+      if (result.reason === 'microphone-permission-required') {
+        Alert.alert('Permiso de micrófono', 'Permite el micrófono para usar subtítulos flotantes.');
+        return;
+      }
+
       Alert.alert('APK nativa requerida', 'La burbuja del sistema funciona en Android con una compilación nativa.');
     } catch {
       Alert.alert('No disponible', 'No se pudo abrir la burbuja del sistema. Revisa el permiso de superposición.');

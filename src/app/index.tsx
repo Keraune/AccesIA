@@ -57,6 +57,11 @@ export default function HomeScreen() {
         return;
       }
 
+      if (result.reason === 'microphone-permission-required') {
+        Alert.alert('Permiso de micrófono', 'Permite el micrófono para usar subtítulos flotantes y comandos de voz.');
+        return;
+      }
+
       Alert.alert('APK nativa requerida', 'La burbuja del sistema funciona en Android mediante una compilación nativa.');
       router.push('/subtitulos' as never);
     } catch {

@@ -9,10 +9,10 @@ AccesIA combina React Native, Expo y módulos nativos Android. La aplicación es
 ## Funciones principales
 
 - Burbuja flotante de Android con controles rápidos.
-- Subtítulos flotantes con estilos tipo video: oscuro, claro, alto contraste y compacto.
+- Subtítulos flotantes tipo video con una franja visible sobre otras apps y estilos oscuro, claro, alto contraste y compacto.
 - Configuración avanzada de subtítulos: posición, tamaño, idioma, estilo y opción de mantenerlos siempre visibles.
 - Lectura accesible con escritura, pegado de texto, pausa, reanudación, velocidad, voces y textos frecuentes.
-- Reconocimiento de voz nativo Android mediante `SpeechRecognizer`.
+- Reconocimiento de voz nativo Android mediante `SpeechRecognizer`, usado para comandos y para subtítulos por micrófono.
 - Comandos para abrir apps instaladas, por ejemplo: `abrir YouTube`, `abrir WhatsApp`, `abrir Chrome`.
 - Servicio de accesibilidad para acciones globales como Inicio, Atrás, Recientes, Notificaciones y Ajustes rápidos.
 - Accesos a ajustes Android para tamaño de letra, pantalla, subtítulos del sistema y accesibilidad.
@@ -57,6 +57,16 @@ Ruta recomendada:
 Ajustes → Accesibilidad → AccesIA → Activar
 ```
 
+## Uso recomendado de subtítulos en videos
+
+```text
+Subtítulos → Fuente de audio: Multimedia del dispositivo → Dar permiso → Activar burbuja
+```
+
+Luego abre YouTube u otra app y reproduce el audio por el altavoz. La franja de subtítulos aparece sobre la pantalla y se actualiza con el audio audible capturado por el micrófono.
+
+También puedes arrastrar la burbuja hacia la parte inferior de la pantalla para mostrar la zona de cierre con una X y soltarla ahí para detener la burbuja.
+
 ## Comandos de voz incluidos
 
 ```text
@@ -86,7 +96,9 @@ activar servicio de accesibilidad
 
 Android protege los ajustes globales del dispositivo. Una app normal no debe cambiar silenciosamente configuraciones del sistema como tamaño de letra global o contraste del sistema sin interacción del usuario. Por eso AccesIA abre las pantallas oficiales de Android cuando se requiere modificar esos valores. Las acciones globales sí pueden ejecutarse cuando el usuario activa el servicio de accesibilidad.
 
-La captura real de audio interno para subtítulos requiere integración adicional con `MediaProjection` y `AudioPlaybackCapture`. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear la captura de su audio.
+Los subtítulos flotantes actuales usan el micrófono con `SpeechRecognizer`. Esto permite subtitular voz cercana y audio de videos reproducidos por el altavoz del teléfono. Si el video está en silencio, con audífonos o con volumen muy bajo, Android no entrega ese audio al micrófono y no habrá texto visible.
+
+La captura directa de audio interno de otras aplicaciones requiere integración adicional con `MediaProjection` y `AudioPlaybackCapture`, además de un motor de voz que acepte audio PCM. Android exige consentimiento del usuario y algunas aplicaciones pueden bloquear la captura de su audio. Por eso AccesIA también ofrece acceso directo a los subtítulos del sistema Android.
 
 ## Ejecutar en desarrollo
 

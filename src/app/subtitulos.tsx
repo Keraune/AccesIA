@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, PermissionsAndroid, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccessibleButton } from '@/components/AccessibleButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -23,6 +23,7 @@ import {
 } from '@/context/AccessibilityContext';
 import type { AppIconName } from '@/data/appModules';
 import { buildCaptionEnginePlan, getCaptionStatusLabel, getCaptionStatusMessage } from '@/services/captionEngine';
+import { openAndroidCaptionSettings } from '@/services/deviceControl';
 import {
   hasAndroidOverlayPermission,
   isAndroidFloatingAssistantActive,
@@ -55,7 +56,7 @@ const sourceOptions: SourceOption[] = [
   {
     id: 'video',
     title: 'Multimedia del dispositivo',
-    description: 'Videos, navegador o aplicaciones con audio hablado.',
+    description: 'Videos con audio por altavoz y apoyo con subtítulos del sistema.',
     icon: 'phone-portrait-outline',
   },
   {
@@ -182,8 +183,31 @@ export default function CaptionsScreen() {
     }, [refreshOverlayStatus]),
   );
 
+  async function ensureMicrophonePermission() {
+    if (Platform.OS !== 'android') return true;
+
+    const currentStatus = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+    if (currentStatus) return true;
+
+    const requestStatus = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
+      title: 'Permiso de micrófono',
+      message: 'AccesIA usa el micrófono para convertir voz cercana o audio por altavoz en subtítulos visibles sobre la pantalla.',
+      buttonPositive: 'Permitir',
+      buttonNegative: 'Ahora no',
+    });
+
+    return requestStatus === PermissionsAndroid.RESULTS.GRANTED;
+  }
+
   async function startSystemBubble() {
     try {
+      const microphoneAllowed = await ensureMicrophonePermission();
+      if (!microphoneAllowed) {
+        setLiveCaptionStatus('permissionError');
+        Alert.alert('Permiso requerido', 'Permite el micrófono para que AccesIA pueda generar subtítulos en vivo.');
+        return;
+      }
+
       const result = await startAndroidFloatingAssistant({
         source: liveCaptionSource,
         theme: settings.captionTheme,
@@ -209,6 +233,12 @@ export default function CaptionsScreen() {
           'Permiso requerido',
           'Activa “Mostrar sobre otras apps” para que la burbuja pueda aparecer encima de otras aplicaciones.',
         );
+        return;
+      }
+
+      if (result.reason === 'microphone-permission-required') {
+        setLiveCaptionStatus('permissionError');
+        Alert.alert('Permiso de micrófono', 'Permite el micrófono para convertir la voz o el audio por altavoz en subtítulos.');
         return;
       }
 
@@ -322,6 +352,16 @@ export default function CaptionsScreen() {
             title="Detener"
             variant="ghost"
           />
+          <AccessibleButton
+            accessibilityHint="Abre la configuración de subtítulos del sistema Android."
+            disabled={Platform.OS !== 'android'}
+            fullWidth={false}
+            icon="text-outline"
+            onPress={() => void openAndroidCaptionSettings()}
+            style={styles.systemButton}
+            title="Subtítulos Android"
+            variant="secondary"
+          />
         </View>
       </View>
 
@@ -352,6 +392,13 @@ export default function CaptionsScreen() {
           value={Platform.OS !== 'android' ? 'No disponible' : overlayActive ? 'Activa' : 'Detenida'}
         />
       </View>
+
+      <InfoCard
+        icon="volume-high-outline"
+        text="Para subtitular un video de otra app, reproduce el audio por altavoz y activa la burbuja. AccesIA escucha el audio audible con el micrófono y muestra el texto en una franja flotante."
+        title="Modo video"
+        tone="primary"
+      />
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionKicker, { color: colors.accent, fontSize: fontSizes.xs * fontMultiplier }]}>Fuente de audio</Text>

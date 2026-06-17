@@ -1,4 +1,4 @@
-import { Linking, NativeModules, Platform } from 'react-native';
+import { Linking, NativeModules, PermissionsAndroid, Platform } from 'react-native';
 
 import type {
   CaptionLanguageMode,
@@ -23,7 +23,7 @@ export type OverlayOptions = {
 
 type OverlayStartResult =
   | { started: true; reason: null }
-  | { started: false; reason: 'native-module-missing' | 'permission-required' };
+  | { started: false; reason: 'native-module-missing' | 'permission-required' | 'microphone-permission-required' };
 
 type AccesiaOverlayNativeModule = {
   hasOverlayPermission: () => Promise<boolean>;
@@ -55,6 +55,22 @@ export async function openAndroidOverlaySettings() {
   }
 }
 
+export async function requestAndroidMicrophonePermission() {
+  if (Platform.OS !== 'android') return true;
+
+  const granted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+  if (granted) return true;
+
+  const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, {
+    title: 'Permiso de micrófono',
+    message: 'AccesIA usa el micrófono para generar subtítulos y comandos de voz cuando tú activas estas funciones.',
+    buttonPositive: 'Permitir',
+    buttonNegative: 'Ahora no',
+  });
+
+  return result === PermissionsAndroid.RESULTS.GRANTED;
+}
+
 export async function isAndroidFloatingAssistantActive() {
   if (!isAndroidSystemOverlayAvailable()) return false;
   return NativeOverlay?.isOverlayRunning() ?? false;
@@ -71,6 +87,18 @@ export async function startAndroidFloatingAssistant(options: OverlayOptions): Pr
       await openAndroidOverlaySettings();
     }
     return { started: false, reason: 'permission-required' };
+  }
+
+  if (Platform.OS === 'android') {
+    const microphoneAlreadyAllowed = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+    if (!microphoneAlreadyAllowed && options.requestPermissionIfMissing === false) {
+      return { started: false, reason: 'microphone-permission-required' };
+    }
+  }
+
+  const microphoneAllowed = await requestAndroidMicrophonePermission();
+  if (!microphoneAllowed) {
+    return { started: false, reason: 'microphone-permission-required' };
   }
 
   await NativeOverlay?.startOverlay(options);

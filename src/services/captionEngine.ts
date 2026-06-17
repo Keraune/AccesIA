@@ -20,15 +20,27 @@ export type CaptionCapability = {
   deviceAudio: boolean;
   requiresMediaProjection: boolean;
   status: LiveCaptionStatus;
+  mode: 'nearby-speech' | 'speaker-audio' | 'system-captions';
 };
 
 export function getCaptionCapability(source: LiveCaptionSource): CaptionCapability {
-  if (source === 'device') {
+  if (source === 'video') {
     return {
       microphone: true,
       deviceAudio: false,
       requiresMediaProjection: false,
-      status: 'waitingPermission',
+      status: 'listening',
+      mode: 'speaker-audio',
+    };
+  }
+
+  if (source === 'device' || source === 'classroom' || source === 'music') {
+    return {
+      microphone: true,
+      deviceAudio: false,
+      requiresMediaProjection: false,
+      status: 'listening',
+      mode: 'nearby-speech',
     };
   }
 
@@ -37,6 +49,7 @@ export function getCaptionCapability(source: LiveCaptionSource): CaptionCapabili
     deviceAudio: true,
     requiresMediaProjection: true,
     status: 'waitingPermission',
+    mode: 'system-captions',
   };
 }
 
@@ -60,7 +73,7 @@ export function getCaptionStatusMessage(status: LiveCaptionStatus) {
     listening: 'Escuchando audio…',
     captioning: 'Subtítulos activos',
     paused: 'Subtítulos pausados',
-    permissionError: 'Revisa los permisos de audio y superposición.',
+    permissionError: 'Revisa los permisos de micrófono y superposición.',
   };
 
   return messages[status];
@@ -72,13 +85,13 @@ export function buildCaptionEnginePlan(preferences: CaptionPreferences) {
   return {
     capability,
     preferences,
-    readyForMicrophoneCapture: preferences.source === 'device',
+    readyForMicrophoneCapture: capability.microphone,
     readyForMediaProjection: capability.requiresMediaProjection,
   };
 }
 
-// Android production note:
-// Microphone capture can be wired with SpeechRecognizer or an offline/on-device ASR layer.
-// Device/media audio capture must be implemented in native Android using MediaProjection plus
-// AudioPlaybackCaptureConfiguration on Android 10+. The React Native layer should only manage
-// preferences, permission flow, and visible states; raw audio capture belongs in the native service.
+// Technical production note:
+// Android SpeechRecognizer listens through the microphone. AccesIA can subtitle nearby speech
+// and video audio played through the phone speaker. Direct internal audio capture from other
+// applications needs MediaProjection + AudioPlaybackCapture and a speech-to-text engine that
+// accepts PCM audio, because Android SpeechRecognizer does not receive raw playback buffers.
