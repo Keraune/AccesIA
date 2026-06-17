@@ -19,6 +19,13 @@ const QUERY_PACKAGES = [
   'com.google.android.apps.maps',
   'com.android.camera',
   'com.google.android.dialer',
+  'com.spotify.music',
+  'org.telegram.messenger',
+  'com.instagram.android',
+  'com.facebook.katana',
+  'com.zhiliaoapp.musically',
+  'com.netflix.mediaclient',
+  'com.android.settings',
 ];
 
 function ensureArray(value) {
@@ -139,7 +146,7 @@ function writeAccessibilityServiceXml(platformProjectRoot) {
   fs.mkdirSync(xmlDir, { recursive: true });
   fs.writeFileSync(
     path.join(xmlDir, 'accesia_accessibility_service.xml'),
-    `<?xml version="1.0" encoding="utf-8"?>\n<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"\n  android:accessibilityEventTypes="typeAllMask"\n  android:accessibilityFeedbackType="feedbackGeneric"\n  android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"\n  android:canRetrieveWindowContent="true"\n  android:canPerformGestures="true"\n  android:description="@string/accesia_accessibility_service_description"\n  android:notificationTimeout="100" />\n`,
+    `<?xml version="1.0" encoding="utf-8"?>\n<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"\n  android:accessibilityEventTypes="typeWindowStateChanged"\n  android:accessibilityFeedbackType="feedbackGeneric"\n  android:canRetrieveWindowContent="false"\n  android:canPerformGestures="false"\n  android:description="@string/accesia_accessibility_service_description"\n  android:notificationTimeout="100" />\n`,
   );
 }
 
@@ -153,7 +160,7 @@ function ensureAccessibilityString(platformProjectRoot) {
 
   contents = contents.replace(
     '</resources>',
-    `  <string name="${value}">Permite a AccesIA ejecutar acciones globales solicitadas por voz, como inicio, atrás, recientes, notificaciones y ajustes rápidos.</string>\n</resources>`,
+    `  <string name="${value}">Permite a AccesIA ejecutar solo acciones globales solicitadas por el usuario, como inicio, atrás, recientes, notificaciones y ajustes rápidos.</string>\n</resources>`,
   );
   fs.writeFileSync(stringsPath, contents);
 }

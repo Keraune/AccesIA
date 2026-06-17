@@ -23,7 +23,9 @@ const NativeDevice = NativeModules.AccesiaDevice as AccesiaDeviceNativeModule | 
 
 const knownAppPackages: Record<string, string> = {
   youtube: 'com.google.android.youtube',
+  'you tube': 'com.google.android.youtube',
   whatsapp: 'com.whatsapp',
+  'whats app': 'com.whatsapp',
   chrome: 'com.android.chrome',
   gmail: 'com.google.android.gm',
   maps: 'com.google.android.apps.maps',
@@ -32,6 +34,12 @@ const knownAppPackages: Record<string, string> = {
   cámara: 'com.android.camera',
   telefono: 'com.google.android.dialer',
   teléfono: 'com.google.android.dialer',
+  spotify: 'com.spotify.music',
+  telegram: 'org.telegram.messenger',
+  instagram: 'com.instagram.android',
+  facebook: 'com.facebook.katana',
+  tiktok: 'com.zhiliaoapp.musically',
+  netflix: 'com.netflix.mediaclient',
 };
 
 export function isAndroidDeviceControlAvailable() {

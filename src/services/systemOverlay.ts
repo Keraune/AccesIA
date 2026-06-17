@@ -18,6 +18,7 @@ export type OverlayOptions = {
   bubbleSize: OverlayBubbleSize;
   initialPosition: OverlayBubblePosition;
   minimize?: boolean;
+  requestPermissionIfMissing?: boolean;
 };
 
 type OverlayStartResult =
@@ -66,7 +67,9 @@ export async function startAndroidFloatingAssistant(options: OverlayOptions): Pr
 
   const allowed = await hasAndroidOverlayPermission();
   if (!allowed) {
-    await openAndroidOverlaySettings();
+    if (options.requestPermissionIfMissing !== false) {
+      await openAndroidOverlaySettings();
+    }
     return { started: false, reason: 'permission-required' };
   }
 

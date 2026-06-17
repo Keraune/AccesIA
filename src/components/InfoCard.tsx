@@ -24,23 +24,15 @@ function resolveTone(tone: InfoCardTone): AppModule['accent'] {
 }
 
 export function InfoCard({ title, text, tone = 'default', icon }: InfoCardProps) {
-  const { colors, fontMultiplier } = useAccessibility();
+  const { colors, fontMultiplier, preferredFontFamily } = useAccessibility();
 
-  const backgroundColor = {
-    default: colors.surface,
-    accent: colors.accentSoft,
-    primary: colors.primarySoft,
-    secondary: colors.secondarySoft,
-    warning: colors.warningSoft,
-    danger: colors.dangerSoft,
-    success: colors.successSoft,
-  }[tone];
+  const backgroundColor = colors.surface;
 
   const borderColor = {
     default: colors.border,
     accent: colors.accent,
-    primary: colors.primary,
-    secondary: colors.secondary,
+    primary: colors.accent,
+    secondary: colors.border,
     warning: colors.warning,
     danger: colors.danger,
     success: colors.success,
@@ -76,8 +68,9 @@ export function InfoCard({ title, text, tone = 'default', icon }: InfoCardProps)
             styles.title,
             {
               color: colors.text,
-              fontSize: fontSizes.lg * fontMultiplier,
-              lineHeight: lineHeights.lg * fontMultiplier,
+              fontSize: fontSizes.md * fontMultiplier,
+              lineHeight: lineHeights.md * fontMultiplier,
+              fontFamily: preferredFontFamily,
             },
           ]}
         >
@@ -88,8 +81,9 @@ export function InfoCard({ title, text, tone = 'default', icon }: InfoCardProps)
             styles.text,
             {
               color: colors.textMuted,
-              fontSize: fontSizes.md * fontMultiplier,
-              lineHeight: lineHeights.md * fontMultiplier,
+              fontSize: fontSizes.sm * fontMultiplier,
+              lineHeight: lineHeights.sm * fontMultiplier,
+              fontFamily: preferredFontFamily,
             },
           ]}
         >
@@ -105,13 +99,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 3,
+    borderLeftWidth: 4,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
   },
   textBlock: {
     flex: 1,

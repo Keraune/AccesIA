@@ -45,14 +45,17 @@ export function AccessibleButton({
   accessibilityLabel,
   accessibilityHint,
 }: AccessibleButtonProps) {
-  const { colors, fontMultiplier, settings } = useAccessibility();
+  const { buttonHeight, buttonPaddingVertical, colors, fontMultiplier, preferredFontFamily, settings } = useAccessibility();
+
+  const primaryTextColor = settings.themeMode === 'light' && !settings.highContrast ? colors.white : colors.black;
+  const accentTextColor = colors.black;
 
   const variantStyle = {
     primary: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
-      textColor: settings.highContrast ? colors.background : colors.white,
-      iconBackground: 'rgba(255,255,255,0.14)',
+      textColor: primaryTextColor,
+      iconBackground: settings.themeMode === 'light' && !settings.highContrast ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.1)',
     },
     secondary: {
       backgroundColor: colors.surface,
@@ -63,8 +66,8 @@ export function AccessibleButton({
     accent: {
       backgroundColor: colors.accent,
       borderColor: colors.accent,
-      textColor: settings.highContrast ? colors.background : colors.white,
-      iconBackground: 'rgba(255,255,255,0.18)',
+      textColor: accentTextColor,
+      iconBackground: 'rgba(0,0,0,0.1)',
     },
     ghost: {
       backgroundColor: colors.surfaceElevated,
@@ -102,8 +105,10 @@ export function AccessibleButton({
           backgroundColor: variantStyle.backgroundColor,
           borderColor: variantStyle.borderColor,
           opacity: disabled ? 0.55 : pressed ? 0.86 : 1,
+          minHeight: buttonHeight,
+          paddingVertical: buttonPaddingVertical,
           shadowColor: variant === 'secondary' || variant === 'ghost' ? colors.shadow : variantStyle.backgroundColor,
-          transform: [{ scale: pressed ? 0.985 : 1 }],
+          transform: [{ scale: pressed && !settings.reduceMotion ? 0.985 : 1 }],
         },
         style,
       ]}
@@ -117,6 +122,7 @@ export function AccessibleButton({
               color: variantStyle.textColor,
               fontSize: fontSizes.md * fontMultiplier,
               lineHeight: lineHeights.md * fontMultiplier,
+              fontFamily: preferredFontFamily,
             },
             titleStyle,
           ]}
@@ -131,6 +137,7 @@ export function AccessibleButton({
                 color: variantStyle.textColor,
                 fontSize: fontSizes.sm * fontMultiplier,
                 lineHeight: lineHeights.sm * fontMultiplier,
+                fontFamily: preferredFontFamily,
               },
             ]}
           >

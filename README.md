@@ -4,18 +4,40 @@ AccesIA es una aplicación móvil de asistencia accesible para Android. Su objet
 
 ## Enfoque del producto
 
-AccesIA combina una app React Native/Expo con módulos nativos Android. La aplicación no intenta simular accesibilidad: prepara permisos reales, servicios nativos y accesos de sistema para que el usuario pueda controlar partes del dispositivo de forma segura.
+AccesIA combina React Native, Expo y módulos nativos Android. La aplicación está pensada como una herramienta de accesibilidad real: prepara permisos, servicios nativos, burbuja flotante, comandos de voz y accesos a ajustes oficiales del sistema para adaptar el dispositivo de forma segura.
 
 ## Funciones principales
 
 - Burbuja flotante de Android con controles rápidos.
 - Subtítulos flotantes con estilos tipo video: oscuro, claro, alto contraste y compacto.
+- Configuración avanzada de subtítulos: posición, tamaño, idioma, estilo y opción de mantenerlos siempre visibles.
 - Lectura accesible con escritura, pegado de texto, pausa, reanudación, velocidad, voces y textos frecuentes.
 - Reconocimiento de voz nativo Android mediante `SpeechRecognizer`.
 - Comandos para abrir apps instaladas, por ejemplo: `abrir YouTube`, `abrir WhatsApp`, `abrir Chrome`.
 - Servicio de accesibilidad para acciones globales como Inicio, Atrás, Recientes, Notificaciones y Ajustes rápidos.
 - Accesos a ajustes Android para tamaño de letra, pantalla, subtítulos del sistema y accesibilidad.
-- Tema visual más limpio, inspirado en interfaces financieras modernas: acciones directas, listas claras y menos bloques cuadrados.
+- Ajustes visuales internos: tema claro, oscuro, alto contraste, tamaño de letra, estilo tipográfico, tamaño de botones y reducción de movimiento.
+- Interfaz inspirada en aplicaciones financieras modernas: listas limpias, acciones directas, menos bloques cuadrados y mejor jerarquía visual.
+
+## Configuración avanzada
+
+Desde **Ajustes** puedes modificar:
+
+```text
+Tema claro / oscuro / alto contraste
+Tamaño de letra de AccesIA
+Estilo tipográfico
+Tamaño de botones
+Reducir movimiento
+Subtítulos siempre visibles
+Burbuja al abrir la app
+Posición de subtítulos
+Tamaño y estilo de subtítulos
+Velocidad de lectura
+Compatibilidad con lectores de pantalla
+```
+
+Las preferencias se guardan localmente. En Android nativo se usan `SharedPreferences` mediante el módulo `AccesiaStorage`.
 
 ## Permisos y servicios Android
 
@@ -81,3 +103,30 @@ eas build --platform android --profile preview
 ```
 
 Para instalar manualmente, descarga el APK generado por EAS e instálalo en el dispositivo Android.
+
+## Instalación y Play Protect
+
+Play Protect puede mostrar advertencias cuando instalas manualmente una APK que no viene de Google Play, especialmente si la app usa permisos sensibles como superposición, micrófono o servicio de accesibilidad. AccesIA no solicita permisos de almacenamiento externo y el servicio de accesibilidad está configurado para acciones globales solicitadas por el usuario, sin leer el contenido de otras ventanas.
+
+Para pruebas internas se recomienda compilar una APK de release firmada:
+
+```bash
+npm install
+npx expo prebuild --platform android --clean
+eas build --platform android --profile preview
+```
+
+Si compilas localmente:
+
+```bash
+cd android
+./gradlew assembleRelease
+```
+
+Instala el APK desde una fuente permitida por Android:
+
+```text
+Ajustes → Seguridad y privacidad → Instalar apps desconocidas → Permitir para tu gestor de archivos o navegador
+```
+
+No uses una APK debug para validar con usuarios finales. Para distribución real, genera un AAB de producción y súbelo a Google Play para que pase revisión y firma oficial.

@@ -121,7 +121,7 @@ export default function HomeScreen() {
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.text, fontSize: fontSizes.xl * fontMultiplier }]}>Funciones</Text>
-        <Text style={[styles.sectionSubtitle, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Menos tarjetas, más acciones directas.</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.textMuted, fontSize: fontSizes.sm * fontMultiplier }]}>Acciones principales de accesibilidad.</Text>
       </View>
 
       <View style={[styles.moduleList, { borderColor: colors.border }]}> 

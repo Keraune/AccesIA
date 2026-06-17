@@ -18,8 +18,10 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     icon: 'eye-outline',
     tone: 'primary',
     settings: {
+      themeMode: 'highContrast',
       highContrast: true,
       fontScale: 'extraLarge',
+      buttonSize: 'large',
       quickAccessEnabled: true,
       screenReaderSupportEnabled: true,
       readingSpeed: 0.75,
@@ -33,6 +35,7 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     tone: 'accent',
     settings: {
       subtitlesEnabled: true,
+      subtitlesAlwaysVisible: true,
       captionTheme: 'highContrast',
       captionPosition: 'bottom',
       quickAccessEnabled: true,
@@ -48,6 +51,8 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     settings: {
       voiceCommandsEnabled: true,
       quickAccessEnabled: true,
+      buttonSize: 'large',
+      autoStartBubble: true,
       fontScale: 'large',
     },
   },
@@ -59,6 +64,7 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     tone: 'success',
     settings: {
       simplifiedMode: true,
+      reduceMotion: true,
       quickAccessEnabled: true,
       fontScale: 'large',
     },
@@ -71,6 +77,7 @@ export const accessibilityPresets: AccessibilityPreset[] = [
     tone: 'warning',
     settings: {
       fontScale: 'extraLarge',
+      buttonSize: 'large',
       readingSpeed: 0.75,
       quickAccessEnabled: true,
       screenReaderSupportEnabled: true,

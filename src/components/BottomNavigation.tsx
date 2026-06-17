@@ -3,7 +3,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { radius, spacing, touchTarget } from '@/constants/layout';
+import { radius, spacing } from '@/constants/layout';
 import { fontSizes, fontWeights, lineHeights } from '@/constants/typography';
 import { useAccessibility } from '@/context/AccessibilityContext';
 import { bottomMenuModules } from '@/data/appModules';
@@ -11,7 +11,7 @@ import { bottomMenuModules } from '@/data/appModules';
 export function BottomNavigation() {
   const router = useRouter();
   const pathname = usePathname();
-  const { colors, fontMultiplier, settings } = useAccessibility();
+  const { colors, fontMultiplier, preferredFontFamily, settings } = useAccessibility();
   const insets = useSafeAreaInsets();
 
   if (settings.simplifiedMode) {
@@ -24,21 +24,14 @@ export function BottomNavigation() {
       style={[
         styles.safeDock,
         {
-          paddingBottom: Math.max(insets.bottom, spacing.xl),
-          backgroundColor: colors.background,
+          paddingBottom: Math.max(insets.bottom, spacing.md),
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          shadowColor: colors.shadow,
         },
       ]}
     >
-      <View
-        style={[
-          styles.shell,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-            shadowColor: colors.shadow,
-          },
-        ]}
-      >
+      <View style={styles.shell}>
         {bottomMenuModules.map((item) => {
           const selected = pathname === item.route;
           const iconName = selected ? item.icon.replace('-outline', '') : item.icon;
@@ -54,28 +47,32 @@ export function BottomNavigation() {
               style={({ pressed }) => [
                 styles.item,
                 {
-                  backgroundColor: selected
-                    ? colors.primaryDeep
-                    : pressed
-                      ? colors.surfaceElevated
-                      : 'transparent',
-                  opacity: pressed ? 0.84 : 1,
+                  opacity: pressed ? 0.78 : 1,
                 },
               ]}
             >
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={[
+                  styles.activeIndicator,
+                  { backgroundColor: selected ? colors.accent : 'transparent' },
+                ]}
+              />
               <Ionicons
-                color={selected ? colors.white : colors.textMuted}
+                color={selected ? colors.text : colors.textSubtle}
                 name={iconName as typeof item.icon}
-                size={22}
+                size={selected ? 22 : 21}
               />
               <Text
                 numberOfLines={1}
                 style={[
                   styles.label,
                   {
-                    color: selected ? colors.white : colors.textMuted,
+                    color: selected ? colors.text : colors.textSubtle,
                     fontSize: fontSizes.xs * fontMultiplier,
                     lineHeight: lineHeights.xs * fontMultiplier,
+                    fontFamily: preferredFontFamily,
                   },
                 ]}
               >
@@ -95,31 +92,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 10,
     zIndex: 60,
   },
   shell: {
-    minHeight: 78,
+    minHeight: 58,
     flexDirection: 'row',
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderRadius: radius.xxl,
-    padding: spacing.sm,
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    elevation: 12,
+    alignItems: 'center',
   },
   item: {
-    minHeight: touchTarget.minimum,
     flex: 1,
+    minHeight: 54,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: spacing.xs,
+    gap: 2,
+    borderRadius: radius.md,
+    paddingHorizontal: 2,
+  },
+  activeIndicator: {
+    width: 22,
+    height: 3,
+    borderRadius: radius.pill,
+    marginBottom: spacing.xs,
   },
   label: {
     fontWeight: fontWeights.bold,

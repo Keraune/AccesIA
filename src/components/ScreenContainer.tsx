@@ -24,7 +24,7 @@ export function ScreenContainer({
   scrollEnabled = true,
   showBottomNavigation = true,
 }: ScreenContainerProps) {
-  const { colors } = useAccessibility();
+  const { colors, settings } = useAccessibility();
   const insets = useSafeAreaInsets();
   const bottomPadding = showBottomNavigation
     ? appLayout.bottomNavigationHeight + Math.max(insets.bottom, spacing.xxl) + spacing.section
@@ -33,7 +33,7 @@ export function ScreenContainer({
   return (
     <SafeAreaView edges={['top', 'left', 'right', 'bottom']} style={[styles.safeArea, { backgroundColor: colors.background }]}> 
       <ScrollView
-        bounces={false}
+        bounces={!settings.reduceMotion}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomPadding },

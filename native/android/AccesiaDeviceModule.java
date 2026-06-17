@@ -2,11 +2,10 @@ package com.keraune.accesiaapp;
 
 import android.content.ComponentName;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.provider.Settings;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -124,36 +123,24 @@ public class AccesiaDeviceModule extends ReactContextBaseJavaModule {
   public void openAppByName(String appName, Promise promise) {
     try {
       String normalized = normalize(appName);
-      String knownPackage = knownPackages.get(normalized);
-      if (knownPackage != null) {
-        boolean opened = launchPackage(knownPackage);
-        WritableMap result = Arguments.createMap();
-        result.putBoolean("opened", opened);
-        result.putString("packageName", knownPackage);
+      String packageName = knownPackages.get(normalized);
+      WritableMap result = Arguments.createMap();
+
+      if (packageName == null) {
+        result.putBoolean("opened", false);
+        result.putString("packageName", "");
         result.putString("label", appName);
         promise.resolve(result);
         return;
       }
 
-      PackageManager packageManager = reactContext.getPackageManager();
-      for (ApplicationInfo info : packageManager.getInstalledApplications(PackageManager.GET_META_DATA)) {
-        String label = String.valueOf(packageManager.getApplicationLabel(info));
-        String packageName = info.packageName;
-        String normalizedLabel = normalize(label);
-        if (normalizedLabel.equals(normalized) || normalizedLabel.contains(normalized)) {
-          boolean opened = launchPackage(packageName);
-          WritableMap result = Arguments.createMap();
-          result.putBoolean("opened", opened);
-          result.putString("packageName", packageName);
-          result.putString("label", label);
-          promise.resolve(result);
-          return;
-        }
+      boolean opened = launchPackage(packageName);
+      if (!opened && "com.android.camera".equals(packageName)) {
+        opened = openCameraIntent();
       }
 
-      WritableMap result = Arguments.createMap();
-      result.putBoolean("opened", false);
-      result.putString("packageName", "");
+      result.putBoolean("opened", opened);
+      result.putString("packageName", packageName);
       result.putString("label", appName);
       promise.resolve(result);
     } catch (Exception exception) {
@@ -188,7 +175,6 @@ public class AccesiaDeviceModule extends ReactContextBaseJavaModule {
     return true;
   }
 
-
   private boolean openCameraIntent() {
     try {
       Intent intent = new Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA);
@@ -219,12 +205,15 @@ public class AccesiaDeviceModule extends ReactContextBaseJavaModule {
       .replaceAll("[^a-z0-9ñ ]", " ")
       .replaceAll("\\s+", " ")
       .trim();
-    if (normalized.equals("youtube")) return "youtube";
+
     if (normalized.equals("you tube")) return "youtube";
-    if (normalized.equals("whatsapp")) return "whatsapp";
     if (normalized.equals("whats app")) return "whatsapp";
-    if (normalized.equals("chrome") || normalized.equals("google chrome")) return "chrome";
+    if (normalized.equals("google chrome")) return "chrome";
+    if (normalized.equals("google maps")) return "maps";
+    if (normalized.equals("mapa")) return "mapas";
     if (normalized.equals("camara") || normalized.equals("camera")) return "camara";
+    if (normalized.equals("telefono") || normalized.equals("phone") || normalized.equals("llamadas")) return "telefono";
+    if (normalized.equals("configuracion") || normalized.equals("ajustes")) return "ajustes";
     return normalized;
   }
 
@@ -236,8 +225,13 @@ public class AccesiaDeviceModule extends ReactContextBaseJavaModule {
     knownPackages.put("maps", "com.google.android.apps.maps");
     knownPackages.put("mapas", "com.google.android.apps.maps");
     knownPackages.put("camara", "com.android.camera");
-    knownPackages.put("camera", "com.android.camera");
     knownPackages.put("telefono", "com.google.android.dialer");
-    knownPackages.put("phone", "com.google.android.dialer");
+    knownPackages.put("spotify", "com.spotify.music");
+    knownPackages.put("telegram", "org.telegram.messenger");
+    knownPackages.put("instagram", "com.instagram.android");
+    knownPackages.put("facebook", "com.facebook.katana");
+    knownPackages.put("tiktok", "com.zhiliaoapp.musically");
+    knownPackages.put("netflix", "com.netflix.mediaclient");
+    knownPackages.put("ajustes", "com.android.settings");
   }
 }

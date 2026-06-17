@@ -39,6 +39,12 @@ type VoiceState = 'idle' | 'listening' | 'answered' | 'unavailable' | 'error';
 
 type CommandSource = 'voice' | 'manual';
 
+function extractRequestedApp(command: string) {
+  const normalized = command.trim().toLowerCase();
+  const match = normalized.match(/^(abrir|abre|iniciar|inicia|lanzar|lanza)\s+(la\s+aplicación\s+|la\s+app\s+|app\s+)?(.+)$/i);
+  return match?.[3]?.trim() ?? '';
+}
+
 export default function AssistantScreen() {
   const router = useRouter();
   const {
@@ -163,8 +169,22 @@ export default function AssistantScreen() {
     }
 
     const action = findVoiceAction(trimmedCommand);
-    const nextResponse = action?.responses[assistantMode] ?? getUnrecognizedResponse(assistantMode);
+    const requestedApp = action ? '' : extractRequestedApp(trimmedCommand);
     const nextConfidence = source === 'manual' ? 100 : Math.round(commandConfidence * 100);
+    let nextResponse = action?.responses[assistantMode] ?? getUnrecognizedResponse(assistantMode);
+    let actionId = action?.id;
+    let actionLabel = action?.label;
+    let commandRecognized = Boolean(action);
+
+    if (!action && requestedApp) {
+      const appResult = await openAndroidAppByName(requestedApp);
+      commandRecognized = appResult.opened;
+      actionId = appResult.opened ? `open-${requestedApp}` : undefined;
+      actionLabel = appResult.opened ? `Abrir ${requestedApp}` : undefined;
+      nextResponse = appResult.opened
+        ? `Abrí ${requestedApp}.`
+        : `No encontré ${requestedApp} entre las aplicaciones configuradas. Puedes agregarla a la lista de apps permitidas.`;
+    }
 
     setVoiceState('answered');
     setTranscript(trimmedCommand);
@@ -176,11 +196,11 @@ export default function AssistantScreen() {
       id: `${Date.now()}`,
       transcript: trimmedCommand,
       response: nextResponse,
-      actionId: action?.id,
-      actionLabel: action?.label,
+      actionId,
+      actionLabel,
       assistantMode,
       confidence: nextConfidence,
-      status: action ? 'recognized' : 'unrecognized',
+      status: commandRecognized ? 'recognized' : 'unrecognized',
       createdAt: new Date().toISOString(),
     });
 
@@ -264,10 +284,11 @@ export default function AssistantScreen() {
     error: 'Revisar micrófono',
   }[voiceState];
 
-  const actionPreviewText = voiceActions
-    .slice(0, 6)
-    .map((action) => action.examples[0])
-    .join(' · ');
+  const actionPreviewText = [
+    ...voiceActions.slice(0, 5).map((action) => action.examples[0]),
+    'abrir Spotify',
+    'abrir Instagram',
+  ].join(' · ');
 
   return (
     <ScreenContainer>

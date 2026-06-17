@@ -21,7 +21,7 @@ export function AppHeader({
   showSettings = true,
 }: AppHeaderProps) {
   const router = useRouter();
-  const { colors, fontMultiplier } = useAccessibility();
+  const { colors, fontMultiplier, preferredFontFamily } = useAccessibility();
   const { initials, profile } = useProfile();
 
   return (
@@ -34,38 +34,35 @@ export function AppHeader({
         <View
           accessibilityElementsHidden
           importantForAccessibility="no"
-          style={[
-            styles.brandMark,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-              shadowColor: colors.shadow,
-            },
-          ]}
+          style={[styles.brandMark, { backgroundColor: colors.primaryDeep }]}
         >
           <Image source={appIcon} style={styles.brandImage} />
         </View>
 
         <View style={styles.textContainer}>
           <Text
+            numberOfLines={1}
             style={[
               styles.title,
               {
                 color: colors.text,
-                fontSize: fontSizes.xl * fontMultiplier,
-                lineHeight: lineHeights.xl * fontMultiplier,
+                fontSize: fontSizes.lg * fontMultiplier,
+                lineHeight: lineHeights.lg * fontMultiplier,
+                fontFamily: preferredFontFamily,
               },
             ]}
           >
             {title}
           </Text>
           <Text
+            numberOfLines={1}
             style={[
               styles.subtitle,
               {
                 color: colors.textMuted,
-                fontSize: fontSizes.sm * fontMultiplier,
-                lineHeight: lineHeights.sm * fontMultiplier,
+                fontSize: fontSizes.xs * fontMultiplier,
+                lineHeight: lineHeights.xs * fontMultiplier,
+                fontFamily: preferredFontFamily,
               },
             ]}
           >
@@ -81,22 +78,23 @@ export function AppHeader({
           accessibilityRole="button"
           onPress={() => router.push('/perfil' as never)}
           style={({ pressed }) => [
-            styles.profileButton,
+            styles.iconButton,
             {
-              backgroundColor: colors.surface,
+              backgroundColor: colors.surfaceElevated,
               borderColor: colors.border,
               opacity: pressed ? 0.78 : 1,
-              shadowColor: colors.shadow,
             },
           ]}
         >
           <Text
+            numberOfLines={1}
             style={[
               styles.initials,
               {
                 color: colors.text,
                 fontSize: fontSizes.xs * fontMultiplier,
                 lineHeight: lineHeights.xs * fontMultiplier,
+                fontFamily: preferredFontFamily,
               },
             ]}
           >
@@ -111,16 +109,15 @@ export function AppHeader({
             accessibilityRole="button"
             onPress={() => router.push('/configuracion' as never)}
             style={({ pressed }) => [
-              styles.settingsButton,
+              styles.iconButton,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
+                backgroundColor: colors.accent,
+                borderColor: colors.accent,
                 opacity: pressed ? 0.78 : 1,
-                shadowColor: colors.shadow,
               },
             ]}
           >
-            <Ionicons color={colors.text} name="settings-outline" size={22} />
+            <Ionicons color={colors.black} name="settings-outline" size={20} />
           </Pressable>
         ) : null}
       </View>
@@ -134,38 +131,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
   },
   brandGroup: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    minWidth: 0,
   },
   brandMark: {
-    width: 58,
-    height: 58,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: 3,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 5,
+    borderRadius: radius.md,
+    overflow: 'hidden',
   },
   brandImage: {
     width: '100%',
     height: '100%',
-    borderRadius: radius.md,
   },
   textContainer: {
     flex: 1,
+    minWidth: 0,
   },
   title: {
     fontWeight: fontWeights.black,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontWeight: fontWeights.medium,
@@ -174,29 +167,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  settingsButton: {
-    width: touchTarget.comfortable,
-    height: touchTarget.comfortable,
+  iconButton: {
+    width: touchTarget.minimum,
+    height: touchTarget.minimum,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderRadius: radius.lg,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-  profileButton: {
-    width: touchTarget.comfortable,
-    height: touchTarget.comfortable,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 3,
+    borderRadius: radius.pill,
   },
   initials: {
     fontWeight: fontWeights.black,

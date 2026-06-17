@@ -27,8 +27,8 @@ export const appModules: AppModule[] = [
   {
     route: '/subtitulos',
     label: 'Subtítulos flotantes',
-    shortLabel: 'Subtítulos',
-    description: 'Configura subtítulos flotantes con apariencia similar a controles de video modernos.',
+    shortLabel: 'Sub',
+    description: 'Controla subtítulos flotantes estilo reproductor de video.',
     icon: 'chatbox-ellipses-outline',
     accent: 'accent',
     status: 'Rápido',
@@ -37,7 +37,7 @@ export const appModules: AppModule[] = [
   {
     route: '/lectura',
     label: 'Lectura por voz',
-    shortLabel: 'Lectura',
+    shortLabel: 'Leer',
     description: 'Escribe o pega texto para escucharlo con el motor de voz del dispositivo.',
     icon: 'volume-high-outline',
     accent: 'primary',
@@ -58,7 +58,7 @@ export const appModules: AppModule[] = [
     route: '/configuracion',
     label: 'Ajustes accesibles',
     shortLabel: 'Ajustes',
-    description: 'Conecta permisos Android, ajustes visuales, subtítulos, burbuja y acciones del sistema.',
+    description: 'Permisos, apariencia, subtítulos, burbuja y controles Android.',
     icon: 'options-outline',
     accent: 'warning',
     status: 'Personalizable',

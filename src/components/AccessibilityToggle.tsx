@@ -25,7 +25,7 @@ export function AccessibilityToggle({
   accessibilityLabel,
   accessibilityHint,
 }: AccessibilityToggleProps) {
-  const { colors, fontMultiplier } = useAccessibility();
+  const { buttonHeight, colors, fontMultiplier, preferredFontFamily } = useAccessibility();
 
   return (
     <Pressable
@@ -37,9 +37,10 @@ export function AccessibilityToggle({
       style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: value ? colors.primarySoft : colors.surface,
-          borderColor: value ? colors.primary : colors.border,
+          backgroundColor: colors.surface,
+          borderColor: value ? colors.accent : colors.border,
           opacity: pressed ? 0.86 : 1,
+          minHeight: Math.max(buttonHeight + 10, 58),
           shadowColor: colors.shadow,
         },
       ]}
@@ -49,10 +50,10 @@ export function AccessibilityToggle({
         importantForAccessibility="no"
         style={[
           styles.iconContainer,
-          { backgroundColor: value ? colors.primary : colors.surfaceElevated },
+          { backgroundColor: value ? colors.accent : colors.surfaceElevated },
         ]}
       >
-        <Ionicons color={value ? colors.white : colors.textMuted} name={icon} size={21} />
+        <Ionicons color={value ? colors.black : colors.textMuted} name={icon} size={21} />
       </View>
 
       <View style={styles.textContainer}>
@@ -63,6 +64,7 @@ export function AccessibilityToggle({
               color: colors.text,
               fontSize: fontSizes.md * fontMultiplier,
               lineHeight: lineHeights.md * fontMultiplier,
+                fontFamily: preferredFontFamily,
             },
           ]}
         >
@@ -76,6 +78,7 @@ export function AccessibilityToggle({
                 color: colors.textMuted,
                 fontSize: fontSizes.sm * fontMultiplier,
                 lineHeight: lineHeights.sm * fontMultiplier,
+                fontFamily: preferredFontFamily,
               },
             ]}
           >
@@ -87,7 +90,7 @@ export function AccessibilityToggle({
       <View
         style={[
           styles.switchTrack,
-          { backgroundColor: value ? colors.primary : colors.border },
+          { backgroundColor: value ? colors.accent : colors.border },
         ]}
       >
         <View
@@ -95,7 +98,7 @@ export function AccessibilityToggle({
             styles.switchThumb,
             {
               backgroundColor: colors.white,
-              transform: [{ translateX: value ? 22 : 0 }],
+              transform: [{ translateX: value ? 20 : 0 }],
             },
           ]}
         />
@@ -110,18 +113,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 1,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderRadius: 0,
+    paddingHorizontal: spacing.xs,
     paddingVertical: spacing.md,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 18,
-    elevation: 2,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
@@ -137,15 +136,15 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.regular,
   },
   switchTrack: {
-    width: 54,
-    height: 32,
+    width: 50,
+    height: 30,
     justifyContent: 'center',
     borderRadius: radius.pill,
     paddingHorizontal: 3,
   },
   switchThumb: {
-    width: 26,
-    height: 26,
+    width: 24,
+    height: 24,
     borderRadius: radius.pill,
   },
 });
