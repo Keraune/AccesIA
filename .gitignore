@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Claude
+claude/
+.claude/
+claude.md
+CLAUDE.md
